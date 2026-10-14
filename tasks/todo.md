@@ -158,7 +158,7 @@
 - [ ] **Task: README final + pasada de consistencia**
   - Acceptance: README documenta comandos, estructura y uso; specs/plan/todo reflejan el estado real (sin secciones huérfanas).
   - Verify: revisión manual cruzando README ↔ specs ↔ `tasks/`.
-  - Files: `README.md`, `SPEC-*.md`, `tasks/plan.md`, `tasks/todo.md`.
+  - Files: `README.md`, `specs/SPEC-*.md`, `tasks/plan.md`, `tasks/todo.md`.
 
 - [ ] **Task: Build portable + release**
   - Acceptance: `wails build` genera un `.exe` portable único y funcional.

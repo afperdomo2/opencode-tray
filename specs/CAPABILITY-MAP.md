@@ -52,11 +52,11 @@ shell  →  service-control  →  ┬─ web-access
 
 1. **UI/UX** — Skill `ui-ux-pro-max` para el sistema de diseño (estilo, paleta, tipografía, espaciado) y accesibilidad (contraste 4.5:1, foco visible, targets ≥ 44px, modo claro/oscuro).
 2. **Testing desde el inicio** — Ninguna tarea "hecha" sin su test.
-3. **Consistencia entre archivos** — README.md, `SPEC-*.md`, `tasks/plan.md`, `tasks/todo.md` y estructura de directorios siempre en sincronía (regla "Always do").
+3. **Consistencia entre archivos** — README.md, `specs/SPEC-*.md`, `tasks/plan.md`, `tasks/todo.md` y estructura de directorios siempre en sincronía (regla "Always do").
 
 ## Convenciones de archivo
 
-- Mapa: `CAPABILITY-MAP.md` (este archivo).
-- Spec por módulo: `SPEC-<module-id>.md`.
+- Mapa: `specs/CAPABILITY-MAP.md` (este archivo).
+- Spec por módulo: `specs/SPEC-<module-id>.md`.
 - Plan: `tasks/plan.md`. Tareas: `tasks/todo.md`.
 - Sistema de diseño (`ui-ux-pro-max`): `design-system/<slug>/MASTER.md`.

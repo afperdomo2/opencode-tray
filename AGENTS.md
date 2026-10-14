@@ -1,0 +1,47 @@
+# AGENTS.md — OpenCode Tray
+
+App de bandeja (tray) para Windows que controla el servicio de OpenCode, el acceso web (local/red/remoto), muestra el consumo de OpenCode Go, permite ver la configuración (MCP/skills/agents) y emite notificaciones nativas.
+
+Stack: **Wails v2 + Go 1.24+ + Vue 3 / Vite / TypeScript**.
+
+## Comandos
+
+```bash
+wails dev                 # desarrollo (hot reload)
+wails build               # build (.exe portable)
+go test ./...             # tests backend
+cd frontend && npm test   # tests frontend (Vitest)
+```
+
+## Estructura
+
+- `specs/` — `CAPABILITY-MAP.md` (índice de módulos) + `SPEC-<module-id>.md` por módulo. Fuente de verdad del **qué**.
+- `tasks/` — `plan.md` (plan técnico) y `todo.md` (tareas). Fuente de verdad del **cómo**.
+- `design-system/` — sistema de diseño generado con la skill `ui-ux-pro-max`.
+- `internal/<módulo>` — backend Go: `shell`, `servicecontrol`, `webaccess`, `usage`, `configviewer`, `notifications`.
+- `frontend/` — UI Vue 3.
+
+## Flujo de trabajo (SDD)
+
+Las specs son la fuente de verdad. Ante un cambio de requisitos, alcance o arquitectura: **actualizar primero la spec afectada**, luego el plan/tareas, luego implementar. Nunca implementar algo que no esté en una spec/tarea aprobada.
+
+## Reglas
+
+**Always do:**
+- Nada está "hecho" sin su test (`go test ./...` / `npm test`).
+- Mantener sincronía de archivos: si un cambio toca comandos, estructura o config global, actualizar en el mismo cambio `README.md`, `specs/SPEC-*.md`, `tasks/plan.md` y `tasks/todo.md`.
+- Todo texto de UI vía claves i18n (`frontend/src/i18n/{es,en}.json`), nunca hardcodeado.
+- Enmascarar secretos antes de mostrarlos en la UI.
+- `gofmt` y lint de frontend antes de cerrar un cambio.
+
+**Ask first:**
+- Agregar dependencias Go o npm.
+- Cambiar el esquema de `Settings`, la librería de tray o la de notificaciones.
+- Cambiar la estructura de carpetas.
+- Añadir edición inline de config (hoy es solo lectura).
+
+**Never:**
+- Commitear secretos, tokens o la contraseña del servicio.
+- Editar a mano `service.json`, la DB de OpenCode o `opencode.json` (usar el CLI de OpenCode).
+- Hardcodear rutas de usuario (usar `os.UserConfigDir()` / homedir).
+- Loggear el token de OpenCode Go ni mostrarlo completo.

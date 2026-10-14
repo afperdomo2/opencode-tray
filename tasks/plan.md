@@ -1,6 +1,6 @@
 # Plan técnico — OpenCode Tray
 
-> Phase 2 del flujo SDD. Fuente de verdad: `CAPABILITY-MAP.md` + las 6 `SPEC-*.md` aprobadas.
+> Phase 2 del flujo SDD. Fuente de verdad: `specs/CAPABILITY-MAP.md` + las 6 `specs/SPEC-*.md` aprobadas.
 > Tras aprobar este plan, sigue Phase 3 (`tasks/todo.md`).
 
 ## 1. Resumen
@@ -68,7 +68,7 @@ Cada fase termina con su checkpoint antes de pasar a la siguiente:
 
 ## 7. Convenciones transversales
 
-- **Consistencia de archivos**: cualquier cambio que toque comandos, estructura o config global **debe** actualizar README.md, `tasks/plan.md`, `tasks/todo.md` y las `SPEC-*.md` afectadas en el mismo cambio.
+- **Consistencia de archivos**: cualquier cambio que toque comandos, estructura o config global **debe** actualizar README.md, `tasks/plan.md`, `tasks/todo.md` y las `specs/SPEC-*.md` afectadas en el mismo cambio.
 - **i18n**: todo texto de UI vía claves en `frontend/src/i18n/{es,en}.json`.
 - **UI/UX**: aplicar el sistema de diseño generado con `ui-ux-pro-max` (persistido en `design-system/opencode-tray/MASTER.md`) — se genera al iniciar la Fase 1.
 - **Seguridad**: secretos enmascarados, token/contraseña nunca en logs ni commits.

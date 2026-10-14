@@ -59,14 +59,15 @@ cd frontend && npm run test:watch
 
 ```
 opencode-tray/
-├── CAPABILITY-MAP.md          # índice de módulos (ya existe)
-├── SPEC-shell.md              # esta spec
-├── SPEC-service-control.md    # (futuro)
-├── SPEC-web-access.md         # (futuro)
-├── SPEC-usage.md              # (futuro)
-├── SPEC-config-viewer.md      # (futuro)
-├── SPEC-notifications.md      # (futuro)
-├── README.md                  # se mantiene en sincronía con lo de arriba
+├── README.md                  # puerta de entrada; enlaza a specs/ y tasks/
+├── specs/
+│   ├── CAPABILITY-MAP.md      # índice de módulos (ya existe)
+│   ├── SPEC-shell.md          # esta spec
+│   ├── SPEC-service-control.md
+│   ├── SPEC-web-access.md
+│   ├── SPEC-usage.md
+│   ├── SPEC-config-viewer.md
+│   └── SPEC-notifications.md
 ├── tasks/
 │   ├── plan.md                # plan técnico
 │   └── todo.md                # lista de tareas

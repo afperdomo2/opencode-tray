@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { GetSettings, SetLanguage } from '../wailsjs/go/main/App'
 import Section from './components/Section.vue'
+import Servicio from './components/Servicio.vue'
 import Ajustes from './components/Ajustes.vue'
 
 const { t, locale } = useI18n()
@@ -59,7 +60,8 @@ async function onLocale(e: Event) {
     </nav>
 
     <main class="app-content">
-      <Ajustes v-if="active === 'ajustes'" />
+      <Servicio v-if="active === 'servicio'" />
+      <Ajustes v-else-if="active === 'ajustes'" />
       <Section v-else :name="active" />
     </main>
   </div>

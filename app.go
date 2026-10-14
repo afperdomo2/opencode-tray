@@ -6,19 +6,21 @@ import (
 
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 
+	"opencode-tray/internal/servicecontrol"
 	"opencode-tray/internal/shell"
 )
 
-// App es la estructura principal que cablea el backend (shell) con Wails.
+// App es la estructura principal que cablea el backend con Wails.
 type App struct {
 	ctx       context.Context
 	settings  *shell.SettingsStore
 	autostart *shell.AutoStart
 	win       *shell.WindowController
 	tray      *shell.TrayHandler
+	service   *servicecontrol.Service
 }
 
-// NewApp crea la App con el store de ajustes y el gestor de auto-inicio.
+// NewApp crea la App con sus dependencias del backend.
 func NewApp() *App {
 	// Ruta de ajustes por defecto (%APPDATA%\OpenCodeTray\settings.json).
 	path, err := shell.DefaultPath()
@@ -31,6 +33,7 @@ func NewApp() *App {
 	return &App{
 		settings:  shell.NewSettingsStore(path),
 		autostart: shell.NewAutoStart(key, os.Executable),
+		service:   servicecontrol.New(),
 	}
 }
 
@@ -64,7 +67,7 @@ type wailsWindow struct{ ctx context.Context }
 func (w wailsWindow) Show() { wailsruntime.WindowShow(w.ctx) }
 func (w wailsWindow) Hide() { wailsruntime.WindowHide(w.ctx) }
 
-// --- Métodos expuestos al frontend ---
+// --- Ajustes y ventana ---
 
 // GetSettings devuelve los ajustes actuales.
 func (a *App) GetSettings() shell.Settings {
@@ -98,3 +101,29 @@ func (a *App) SetAutoStart(enabled bool) error {
 func (a *App) ToggleWindow() {
 	a.win.Toggle()
 }
+
+// --- Control del servicio (service-control) ---
+
+// ServiceStatusResult expone el estado del servicio al frontend.
+type ServiceStatusResult struct {
+	Running bool   `json:"running"`
+	URL     string `json:"url"`
+}
+
+// ServiceStatus devuelve el estado del servicio de fondo.
+func (a *App) ServiceStatus() (ServiceStatusResult, error) {
+	st, err := a.service.Status()
+	if err != nil {
+		return ServiceStatusResult{}, err
+	}
+	return ServiceStatusResult{Running: st.Running, URL: st.URL}, nil
+}
+
+// ServiceStart arranca el servicio.
+func (a *App) ServiceStart() error { return a.service.Start() }
+
+// ServiceStop intenta detener el servicio normalmente.
+func (a *App) ServiceStop() error { return a.service.Stop() }
+
+// ServiceForceStop detiene el servicio de forma fiable (workaround del bug).
+func (a *App) ServiceForceStop() error { return a.service.ForceStop() }

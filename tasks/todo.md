@@ -45,22 +45,22 @@
 
 ## Fase 2 — service-control
 
-- [ ] **Task: Wrapper de exec + Status/Info**
+- [x] **Task: Wrapper de exec + Status/Info**
   - Acceptance: `run()` ejecuta el CLI con timeout; `Status()` y `Info()` parsean `opencode service status` y el JSON de `/api/info` (incluye `pid`).
   - Verify: `go test` con runner mockeado (sin `opencode` real).
   - Files: `internal/servicecontrol/exec.go`, `internal/servicecontrol/status.go`, `internal/servicecontrol/service.go`, `*_test.go`.
 
-- [ ] **Task: Start/Stop/Restart**
+- [x] **Task: Start/Stop/Restart**
   - Acceptance: `Start/Stop/Restart` invocan los comandos correctos y propagan errores.
   - Verify: `go test` table-driven con runner mockeado.
   - Files: `internal/servicecontrol/lifecycle.go`, `*_test.go`.
 
-- [ ] **Task: ForceStop (workaround PID)**
+- [x] **Task: ForceStop (workaround PID)**
   - Acceptance: `ForceStop()` = `Stop()` → verificar → si sigue vivo, matar `pid` de `/api/info` (`taskkill /F` en Windows).
   - Verify: `go test` (Stop falla → mata; ya detenido → no mata) + prueba manual con el bug real.
   - Files: `internal/servicecontrol/lifecycle.go`, `internal/servicecontrol/kill_windows.go`, `*_test.go`.
 
-- [ ] **Task: Config Get/Set/Unset**
+- [x] **Task: Config Get/Set/Unset**
   - Acceptance: `Get/Set/Unset` leen y escriben hostname, port y password del servicio vía `opencode service set/get/unset`.
   - Verify: `go test` de argumentos formados + verificación manual de `service get hostname`.
   - Files: `internal/servicecontrol/config.go`, `*_test.go`.

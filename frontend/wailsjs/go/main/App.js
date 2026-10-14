@@ -10,6 +10,22 @@ export function SaveSettings(arg1) {
   return window['go']['main']['App']['SaveSettings'](arg1);
 }
 
+export function ServiceForceStop() {
+  return window['go']['main']['App']['ServiceForceStop']();
+}
+
+export function ServiceStart() {
+  return window['go']['main']['App']['ServiceStart']();
+}
+
+export function ServiceStatus() {
+  return window['go']['main']['App']['ServiceStatus']();
+}
+
+export function ServiceStop() {
+  return window['go']['main']['App']['ServiceStop']();
+}
+
 export function SetAutoStart(arg1) {
   return window['go']['main']['App']['SetAutoStart'](arg1);
 }

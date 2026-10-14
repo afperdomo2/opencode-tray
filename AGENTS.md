@@ -46,3 +46,4 @@ Las specs son la fuente de verdad. Ante un cambio de requisitos, alcance o arqui
 - Editar a mano `service.json`, la DB de OpenCode o `opencode.json` (usar el CLI de OpenCode).
 - Hardcodear rutas de usuario (usar `os.UserConfigDir()` / homedir).
 - Loggear el token de OpenCode Go ni mostrarlo completo.
+- Usar métodos **variádicos** en interfaces del backend que Wails expone (p. ej. `Run(args ...string)`): rompen la generación de bindings **en silencio** (no escribe `frontend/wailsjs/go`). Usar `[]string` en su lugar.

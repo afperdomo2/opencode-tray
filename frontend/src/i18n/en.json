@@ -18,6 +18,14 @@
     "config": "MCP, skills and global configuration.",
     "ajustes": "Application settings."
   },
+  "service": {
+    "running": "Running",
+    "stopped": "Stopped",
+    "start": "Start",
+    "stop": "Stop",
+    "forceStop": "Force stop",
+    "refresh": "Refresh"
+  },
   "common": {
     "pending": "Not implemented yet",
     "language": "Language",

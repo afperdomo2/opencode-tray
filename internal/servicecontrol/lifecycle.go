@@ -1,6 +1,9 @@
 package servicecontrol
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // Start arranca el servicio de fondo.
 func (s *Service) Start() error {
@@ -27,6 +30,16 @@ func (s *Service) Restart() error {
 		return fmt.Errorf("service restart: %w (%s)", err, trim(stderr))
 	}
 	return nil
+}
+
+// RunRaw ejecuta un subcomando arbitrario de `opencode` (p. ej. pair) y
+// devuelve su salida. Para que web-access pueda reutilizar el runner.
+func (s *Service) RunRaw(args ...string) (string, error) {
+	stdout, stderr, err := s.run(args...)
+	if err != nil {
+		return "", fmt.Errorf("opencode %s: %w (%s)", strings.Join(args, " "), err, trim(stderr))
+	}
+	return trim(stdout), nil
 }
 
 // ForceStop detiene el servicio de forma fiable, sorteando el bug de

@@ -1,8 +1,7 @@
 //go:build !windows
 
-package servicecontrol
+package procs
 
 import "os/exec"
 
-// suppressConsole no hace nada fuera de Windows.
 func suppressConsole(cmd *exec.Cmd) {}

@@ -69,17 +69,17 @@
 
 ## Fase 3a — usage
 
-- [ ] **Task: Fetch + parseo del consumo Go**
+- [x] **Task: Fetch + parseo del consumo Go**
   - Acceptance: `Fetch()` consulta `GET https://opencode.ai/zen/go/v1/usage` y parsea rolling/weekly/monthly (percent + resetsAt), tolerando `null`.
   - Verify: `go test` con `httptest.Server` (respuesta válida, `percent:null`, 401, 403/EntitlementError).
   - Files: `internal/usage/fetch.go`, `internal/usage/usage.go`, `*_test.go`.
 
-- [ ] **Task: Resolución de token**
+- [x] **Task: Resolución de token**
   - Acceptance: manual (Ajustes) > auto desde `~/.local/share/opencode/auth.json` (`opencode-go.key`) > "sin token".
   - Verify: `go test` con auth.json temporal (prioridad y ausencia).
   - Files: `internal/usage/token.go`, `*_test.go`.
 
-- [ ] **Task: Severity para el tray**
+- [x] **Task: Severity para el tray**
   - Acceptance: `Severity()` mapea consumo → verde/amarillo/rojo según las reglas (≥90 amarillo, ≥98 rojo, error rojo).
   - Verify: `go test` por banda.
   - Files: `internal/usage/severity.go`, `*_test.go`.
@@ -88,17 +88,17 @@
 
 ## Fase 3b — web-access
 
-- [ ] **Task: Aplicación de modos (local/red/remoto)**
+- [x] **Task: Aplicación de modos (local/red/remoto)**
   - Acceptance: `ApplyMode` forma el hostname correcto (127.0.0.1 / 0.0.0.0) o activa remoto (`pair --remote`), usando el contrato de `service-control`.
   - Verify: `go test` mockeando `servicecontrol.Service`.
   - Files: `internal/webaccess/modes.go`, `internal/webaccess/webaccess.go`, `*_test.go`.
 
-- [ ] **Task: URLs de acceso**
+- [x] **Task: URLs de acceso**
   - Acceptance: `ComputeURLs()` devuelve IP(s) LAN + puerto para el modo red.
   - Verify: `go test` con IPs inyectadas.
   - Files: `internal/webaccess/urls.go`, `*_test.go`.
 
-- [ ] **Task: Credenciales (usuario + contraseña)**
+- [x] **Task: Credenciales (usuario + contraseña)**
   - Acceptance: `Username()` = "opencode"; `CurrentPassword()` lee la contraseña; `ChangePassword()` la cambia y reinicia el servicio; UI con mostrar/ocultar.
   - Verify: `go test` (cambio de contraseña) + Vitest (toggle mostrar/ocultar).
   - Files: `internal/webaccess/credentials.go`, `*_test.go`, `frontend/src/components/web-access/`.
@@ -107,17 +107,17 @@
 
 ## Fase 3c — config-viewer
 
-- [ ] **Task: Listado MCP/skills/agents**
+- [x] **Task: Listado MCP/skills/agents**
   - Acceptance: `ListMCP/ListSkills/ListAgents` devuelven las listas (MCP con estado de conexión).
   - Verify: `go test` parseando salida de `opencode mcp list`.
   - Files: `internal/configviewer/mcp.go`, `internal/configviewer/catalog.go`, `*_test.go`.
 
-- [ ] **Task: Config JSON + enmascarado de secretos**
+- [x] **Task: Config JSON + enmascarado de secretos**
   - Acceptance: `ConfigJSON()` lee `~/.config/opencode/opencode.json(c)` y enmascara keys/tokens/passwords antes de exponerlos.
   - Verify: `go test` con `opencode.jsonc` de prueba (secretos → "••••").
   - Files: `internal/configviewer/config.go`, `internal/configviewer/mask.go`, `*_test.go`.
 
-- [ ] **Task: Abrir en editor / abrir carpeta**
+- [x] **Task: Abrir en editor / abrir carpeta**
   - Acceptance: `OpenInEditor` usa `code` si está en PATH, si no el editor por defecto; `OpenConfigDir` abre el directorio.
   - Verify: `go test` con PATH fakeado.
   - Files: `internal/configviewer/editor.go`, `*_test.go`.

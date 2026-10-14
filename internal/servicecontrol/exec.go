@@ -5,6 +5,8 @@ import (
 	"context"
 	"os/exec"
 	"time"
+
+	"opencode-tray/internal/procs"
 )
 
 // execRunner ejecuta el binario de OpenCode con un timeout.
@@ -20,7 +22,7 @@ func (e execRunner) Run(args []string) (string, string, error) {
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, e.bin, args...)
-	suppressConsole(cmd)
+	procs.SuppressConsole(cmd)
 	var out, errOut bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &errOut

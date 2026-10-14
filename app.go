@@ -6,8 +6,11 @@ import (
 
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 
+	"opencode-tray/internal/configviewer"
 	"opencode-tray/internal/servicecontrol"
 	"opencode-tray/internal/shell"
+	"opencode-tray/internal/usage"
+	"opencode-tray/internal/webaccess"
 )
 
 // App es la estructura principal que cablea el backend con Wails.
@@ -18,6 +21,9 @@ type App struct {
 	win       *shell.WindowController
 	tray      *shell.TrayHandler
 	service   *servicecontrol.Service
+	usage     *usage.Service
+	webaccess *webaccess.Service
+	cfgviewer *configviewer.Service
 }
 
 // NewApp crea la App con sus dependencias del backend.
@@ -29,11 +35,15 @@ func NewApp() *App {
 	}
 	// Clave de registro del auto-inicio (Windows).
 	key, _ := shell.NewSystemRunKey()
+	svc := servicecontrol.New()
 
 	return &App{
 		settings:  shell.NewSettingsStore(path),
 		autostart: shell.NewAutoStart(key, os.Executable),
-		service:   servicecontrol.New(),
+		service:   svc,
+		usage:     usage.New(),
+		webaccess: webaccess.New(svc),
+		cfgviewer: configviewer.New(),
 	}
 }
 
@@ -127,3 +137,55 @@ func (a *App) ServiceStop() error { return a.service.Stop() }
 
 // ServiceForceStop detiene el servicio de forma fiable (workaround del bug).
 func (a *App) ServiceForceStop() error { return a.service.ForceStop() }
+
+// --- Consumo (usage) ---
+
+// UsageFetch consulta el consumo de OpenCode Go (rolling/weekly/monthly).
+func (a *App) UsageFetch() (usage.Usage, error) { return a.usage.Fetch() }
+
+// UsageSetManualToken fija el token manual de Go (desde Ajustes).
+func (a *App) UsageSetManualToken(tok string) { a.usage.SetManualToken(tok) }
+
+// UsageClearManualToken elimina el token manual (vuelve a auth.json).
+func (a *App) UsageClearManualToken() { a.usage.ClearManualToken() }
+
+// --- Acceso web (web-access) ---
+
+// WebAccessApplyMode aplica un modo: "local", "network" o "remote".
+func (a *App) WebAccessApplyMode(mode string) error {
+	return a.webaccess.ApplyMode(webaccess.Mode(mode))
+}
+
+// WebAccessURLs devuelve las URLs de acceso (IPs LAN + puerto).
+func (a *App) WebAccessURLs() ([]string, error) { return a.webaccess.ComputeURLs() }
+
+// WebAccessUsername devuelve el usuario del servidor (opencode).
+func (a *App) WebAccessUsername() string { return a.webaccess.Username() }
+
+// WebAccessCurrentPassword lee la contraseña actual del servicio.
+func (a *App) WebAccessCurrentPassword() (string, error) { return a.webaccess.CurrentPassword() }
+
+// WebAccessChangePassword cambia la contraseña y reinicia el servicio.
+func (a *App) WebAccessChangePassword(newPw string) error {
+	return a.webaccess.ChangePassword(newPw)
+}
+
+// --- Config (config-viewer) ---
+
+// ConfigListMCP lista los servidores MCP con su estado de conexión.
+func (a *App) ConfigListMCP() ([]configviewer.MCPServer, error) { return a.cfgviewer.ListMCP() }
+
+// ConfigJSON lee el config global de OpenCode con secretos enmascarados.
+func (a *App) ConfigJSON() (string, error) { return a.cfgviewer.ConfigJSON() }
+
+// ConfigOpenInEditor abre el config global en el editor.
+func (a *App) ConfigOpenInEditor() error {
+	p, err := a.cfgviewer.ConfigPath()
+	if err != nil {
+		return err
+	}
+	return a.cfgviewer.OpenInEditor(p)
+}
+
+// ConfigOpenDir abre la carpeta de configuración de OpenCode.
+func (a *App) ConfigOpenDir() error { return a.cfgviewer.OpenConfigDir() }

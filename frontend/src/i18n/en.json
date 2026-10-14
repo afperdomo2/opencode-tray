@@ -26,6 +26,41 @@
     "forceStop": "Force stop",
     "refresh": "Refresh"
   },
+  "usage": {
+    "rolling": "5 hours",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "used": "used",
+    "remaining": "remaining",
+    "reset": "Resets",
+    "loading": "Loading usage…",
+    "error": "Could not read OpenCode Go usage.",
+    "noToken": "No OpenCode Go token. Run /connect in OpenCode or paste the API key in Settings."
+  },
+  "web": {
+    "mode": "Access mode",
+    "local": "Local",
+    "network": "Network (by IP)",
+    "remote": "Remote (tunnel)",
+    "urls": "Access URLs",
+    "noUrls": "No network IPs detected.",
+    "username": "Username",
+    "password": "Password",
+    "changePassword": "Change password",
+    "newPassword": "New password",
+    "save": "Save",
+    "saved": "Password updated",
+    "show": "Show",
+    "hide": "Hide"
+  },
+  "config": {
+    "mcp": "MCP servers",
+    "empty": "No MCP servers configured",
+    "openEditor": "Open in editor",
+    "openDir": "Open folder",
+    "loading": "Loading config…",
+    "error": "Could not read the configuration."
+  },
   "common": {
     "pending": "Not implemented yet",
     "language": "Language",

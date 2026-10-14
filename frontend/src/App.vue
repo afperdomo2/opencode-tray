@@ -4,6 +4,9 @@ import { useI18n } from 'vue-i18n'
 import { GetSettings, SetLanguage } from '../wailsjs/go/main/App'
 import Section from './components/Section.vue'
 import Servicio from './components/Servicio.vue'
+import Consumo from './components/Consumo.vue'
+import AccesoWeb from './components/AccesoWeb.vue'
+import Config from './components/Config.vue'
 import Ajustes from './components/Ajustes.vue'
 
 const { t, locale } = useI18n()
@@ -61,6 +64,9 @@ async function onLocale(e: Event) {
 
     <main class="app-content">
       <Servicio v-if="active === 'servicio'" />
+      <Consumo v-else-if="active === 'consumo'" />
+      <AccesoWeb v-else-if="active === 'accesoWeb'" />
+      <Config v-else-if="active === 'config'" />
       <Ajustes v-else-if="active === 'ajustes'" />
       <Section v-else :name="active" />
     </main>

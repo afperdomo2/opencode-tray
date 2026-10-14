@@ -20,6 +20,7 @@ func (e execRunner) Run(args []string) (string, string, error) {
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, e.bin, args...)
+	suppressConsole(cmd)
 	var out, errOut bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &errOut

@@ -25,6 +25,10 @@ cd frontend && pnpm test   # tests frontend (Vitest)
 
 Las specs son la fuente de verdad. Ante un cambio de requisitos, alcance o arquitectura: **actualizar primero la spec afectada**, luego el plan/tareas, luego implementar. Nunca implementar algo que no esté en una spec/tarea aprobada.
 
+## Notas técnicas (gotchas)
+
+- **`wails dev` no sirve para validar frontend ↔ backend**: en modo dev el puente `window.go` puede quedar sin definir (quirk del proxy de Vite de Wails), haciendo fallar todas las llamadas al backend. **Validar siempre con el build de producción** (`wails build` → `build/bin/opencode-tray.exe`). Ver README → "Limitaciones conocidas".
+
 ## Reglas
 
 **Always do:**

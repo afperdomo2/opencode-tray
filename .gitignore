@@ -1,1 +1,10 @@
 .agents/
+
+# Wails
+build/bin
+build/darwin
+node_modules
+frontend/dist
+
+# Binarios compilados (go build ./... deja exes en la raíz)
+*.exe

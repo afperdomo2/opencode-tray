@@ -1,0 +1,26 @@
+{
+  "app": {
+    "title": "OpenCode Tray"
+  },
+  "nav": {
+    "resumen": "Resumen",
+    "servicio": "Servicio",
+    "accesoWeb": "Acceso web",
+    "consumo": "Consumo",
+    "config": "Config",
+    "ajustes": "Ajustes"
+  },
+  "sections": {
+    "resumen": "Estado general de OpenCode.",
+    "servicio": "Estado y control del servicio de fondo.",
+    "accesoWeb": "Modos de acceso: local, red o remoto.",
+    "consumo": "Consumo de OpenCode Go.",
+    "config": "MCP, skills y configuración global.",
+    "ajustes": "Ajustes de la aplicación."
+  },
+  "common": {
+    "pending": "Pendiente de implementar",
+    "language": "Idioma",
+    "autoStart": "Iniciar con Windows"
+  }
+}

@@ -52,7 +52,7 @@ Las fases 3a/3b/3c se pueden hacer **en paralelo** (independientes entre sí).
 
 Cada fase termina con su checkpoint antes de pasar a la siguiente:
 
-- **Fase 0**: `wails dev` arranca y `go test ./...` + `npm test` corren (aunque estén vacíos).
+- **Fase 0**: `wails dev` arranca y `go test ./...` + `pnpm test` corren (aunque estén vacíos).
 - **Fase 1**: icono en tray, panel abre/cierra, ajustes persisten, auto-inicio escribe/borra `HKCU\...\Run`, i18n es/en funciona. Tests verdes.
 - **Fase 2**: `Status` correcto; `ForceStop` deja el servicio muerto (prueba manual con el bug real).
 - **Fase 3a/3b/3c**: consumo se muestra; modos alternan y muestran URLs; visor enmascara secretos y abre el editor.
@@ -64,7 +64,7 @@ Cada fase termina con su checkpoint antes de pasar a la siguiente:
 - **Go**: `testing` estándar, table-driven. Todo I/O externo (exec, HTTP, archivos, notificaciones) se inyecta como interface/func para mockear. Ningún test toca `opencode` real ni red real.
 - **Vue**: Vitest + @vue/test-utils para componentes de sección.
 - **Sin e2e** (se evalúa después de la v1).
-- **CI local**: `go test ./...` y `cd frontend && npm test` como pre-commit mental (y hook opcional después).
+- **CI local**: `go test ./...` y `cd frontend && pnpm test` como pre-commit mental (y hook opcional después).
 
 ## 7. Convenciones transversales
 

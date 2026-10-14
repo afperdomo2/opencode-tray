@@ -10,7 +10,7 @@ Stack: **Wails v2 + Go 1.24+ + Vue 3 / Vite / TypeScript**.
 wails dev                 # desarrollo (hot reload)
 wails build               # build (.exe portable)
 go test ./...             # tests backend
-cd frontend && npm test   # tests frontend (Vitest)
+cd frontend && pnpm test   # tests frontend (Vitest)
 ```
 
 ## Estructura
@@ -28,14 +28,15 @@ Las specs son la fuente de verdad. Ante un cambio de requisitos, alcance o arqui
 ## Reglas
 
 **Always do:**
-- Nada está "hecho" sin su test (`go test ./...` / `npm test`).
+- Nada está "hecho" sin su test (`go test ./...` / `pnpm test`).
 - Mantener sincronía de archivos: si un cambio toca comandos, estructura o config global, actualizar en el mismo cambio `README.md`, `specs/SPEC-*.md`, `tasks/plan.md` y `tasks/todo.md`.
 - Todo texto de UI vía claves i18n (`frontend/src/i18n/{es,en}.json`), nunca hardcodeado.
 - Enmascarar secretos antes de mostrarlos en la UI.
+- Comentarios del código en **español**, nunca en inglés (identificadores —variables, funciones, tipos— en inglés; comentarios y strings de UI en español salvo i18n).
 - `gofmt` y lint de frontend antes de cerrar un cambio.
 
 **Ask first:**
-- Agregar dependencias Go o npm.
+- Agregar dependencias Go o de paquetes (pnpm).
 - Cambiar el esquema de `Settings`, la librería de tray o la de notificaciones.
 - Cambiar la estructura de carpetas.
 - Añadir edición inline de config (hoy es solo lectura).

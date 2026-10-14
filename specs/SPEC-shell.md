@@ -44,15 +44,15 @@ wails dev
 wails build
 
 # Frontend
-cd frontend && npm install
-cd frontend && npm run dev
+cd frontend && pnpm install
+cd frontend && pnpm dev
 
 # Tests backend (Go)
 go test ./...
 
 # Tests frontend
-cd frontend && npm test          # vitest run
-cd frontend && npm run test:watch
+cd frontend && pnpm test          # vitest run
+cd frontend && pnpm test:watch
 ```
 
 ## Project Structure
@@ -141,7 +141,7 @@ const { t } = useI18n()
   - Correr `go test ./...` y tests de frontend antes de dar por cerrado un cambio.
   - `gofmt` y lint de frontend.
 - **Ask first:**
-  - Agregar dependencias Go o npm.
+  - Agregar dependencias Go o de paquetes (pnpm).
   - Cambiar la librería de tray o el esquema de `Settings`.
   - Cambiar la estructura de carpetas del proyecto.
 - **Never:**
@@ -157,7 +157,7 @@ const { t } = useI18n()
 - [ ] Los ajustes (idioma, refresco, auto-inicio) persisten entre reinicios.
 - [ ] El toggle de auto-inicio agrega/elimina la clave en `HKCU\...\Run` correctamente.
 - [ ] El selector de idioma alterna es/en en toda la UI.
-- [ ] `go test ./...` y `cd frontend && npm test` pasan en verde.
+- [ ] `go test ./...` y `cd frontend && pnpm test` pasan en verde.
 
 ## Open Questions
 

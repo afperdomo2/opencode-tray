@@ -1,0 +1,28 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "packageManager": "pnpm@10.30.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "vue": "^3.5.0",
+    "vue-i18n": "^11.4.14"
+  },
+  "devDependencies": {
+    "@babel/types": "^7.26.0",
+    "@vitejs/plugin-vue": "^6.0.0",
+    "@vue/test-utils": "^2.5.1",
+    "jsdom": "^29.1.1",
+    "typescript": "^5.6.3",
+    "vite": "^7.0.0",
+    "vitest": "^5.0.4",
+    "vue-tsc": "^2.1.0"
+  }
+}

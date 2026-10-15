@@ -1,10 +1,78 @@
+/* ==========================================================================
+   OpenCode Tray — style.css
+   Sistema de diseño aplicado desde: design-system/opencode-tray/MASTER.md
+   · Style: Dark Mode (OLED)
+   · Paleta, tipografía y espaciado: tokens del design system
+   · Checklist a11y: contraste >= 4.5:1, foco visible, targets >= 44px
+   NOTA: el "Page Pattern" (FAQ Landing) de MASTER no aplica a esta app
+   (es un panel de utilidad con nav + secciones), por lo que no se aplica
+   esa estructura de página; sí se aplica palette/typography/spacing/style.
+   ========================================================================== */
+
+/* Tipografía del design system (display=swap: texto visible con fallback si no hay red) */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
 :root {
-  --bg: #1b2636;
-  --panel: #232f42;
-  --text: #e6edf3;
-  --muted: #8b98a9;
-  --accent: #4f9cf9;
-  --border: #33415a;
+  /* --- Color (MASTER.md → Color Palette) --- */
+  --color-primary: #1e293b;
+  --color-secondary: #334155;
+  --color-accent: #22c55e; /* run green (CTA/interacción) */
+  --color-on-accent: #0f172a;
+  --color-background: #0f172a;
+  --color-foreground: #f8fafc;
+  --color-card: #1b2336;
+  --color-muted: #272f42;
+  --color-muted-foreground: #94a3b8;
+  --color-border: #475569;
+  --color-destructive: #ef4444;
+  --color-on-destructive: #000000;
+  --color-ring: #ffffff;
+
+  /* --- Alias semánticos (nombres que ya usa la app) --- */
+  --bg: var(--color-background);
+  --panel: var(--color-card);
+  --text: var(--color-foreground);
+  --muted: var(--color-muted-foreground);
+  --accent: var(--color-accent);
+  --on-accent: var(--color-on-accent);
+  --border: var(--color-border);
+  --ring: var(--color-ring);
+
+  /* --- Estados semánticos --- */
+  --ok: var(--color-accent); /* verde */
+  --ok-text: var(--color-accent); /* >= 4.5:1 sobre bg y panel */
+  --warn: #eab308; /* ámbar (barras, decorativo) */
+  --crit: var(--color-destructive); /* rojo: puntos/barras/superficies */
+  --crit-text: #ff6b6b; /* rojo p/ texto: >= 4.5:1 en todas las superficies */
+  --on-crit: var(--color-on-destructive);
+
+  /* --- Espaciado (MASTER.md → Spacing) --- */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  /* --- Radios --- */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* --- Sombras (MASTER.md → Shadow Depths) --- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+  /* --- Tipografía (MASTER.md → Typography) --- */
+  --font-body: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --font-heading: var(--font-mono);
+
+  /* --- Movimiento --- */
+  --dur: 200ms;
+  --ease: ease;
+
+  /* --- Target accesible (WCAG 2.5.5: 44x44px) --- */
+  --target: 44px;
 }
 
 * {
@@ -19,11 +87,35 @@ body,
 }
 
 body {
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-body);
   font-size: 14px;
   line-height: 1.5;
   background: var(--bg);
   color: var(--text);
+}
+
+/* Foco visible para navegación por teclado (a11y) */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Respeta la preferencia de movimiento reducido (a11y) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --- Títulos: tipografía de cabecera del design system --- */
+.app-header h1,
+.section h2,
+h3 {
+  font-family: var(--font-heading);
 }
 
 .app {
@@ -36,7 +128,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: var(--space-sm) var(--space-md);
   border-bottom: 1px solid var(--border);
 }
 
@@ -50,26 +142,42 @@ body {
   background: var(--panel);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 4px 8px;
+  border-radius: var(--radius-md);
+  padding: var(--space-xs) var(--space-sm);
+  min-height: var(--target);
+  min-width: var(--target);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease);
+}
+
+.lang-select:hover {
+  border-color: var(--accent);
 }
 
 .app-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  padding: 8px 12px;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
   border-bottom: 1px solid var(--border);
 }
 
 .nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--target);
+  padding: var(--space-sm) var(--space-md);
   background: transparent;
   color: var(--muted);
   border: none;
-  border-radius: 6px;
-  padding: 6px 10px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font: inherit;
+  transition:
+    color var(--dur) var(--ease),
+    background-color var(--dur) var(--ease);
 }
 
 .nav-btn:hover {
@@ -78,22 +186,23 @@ body {
 
 .nav-btn.active {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
+  font-weight: 600;
 }
 
 .app-content {
   flex: 1;
-  padding: 16px;
+  padding: var(--space-md);
   overflow: auto;
 }
 
 .section h2 {
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-sm);
   font-size: 15px;
 }
 
 .section p {
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-sm);
   color: var(--muted);
 }
 
@@ -102,32 +211,36 @@ body {
   opacity: 0.7;
 }
 
+/* Fila de toggle: control discreto a pantalla completa (target >= 44px) */
 .toggle {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
+  min-height: var(--target);
+  margin-bottom: var(--space-xs);
   cursor: pointer;
 }
 
 .status-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 8px 0;
+  gap: var(--space-sm);
+  margin: var(--space-sm) 0;
 }
 
 .dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
+  flex: none;
 }
 
 .dot.on {
-  background: #3fb950;
+  background: var(--ok);
 }
 
 .dot.off {
-  background: #f85149;
+  background: var(--crit);
 }
 
 .url {
@@ -139,18 +252,25 @@ body {
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
 }
 
 .actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--target);
+  padding: var(--space-sm) var(--space-md);
   background: var(--panel);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 6px 12px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font: inherit;
+  transition:
+    border-color var(--dur) var(--ease),
+    opacity var(--dur) var(--ease);
 }
 
 .actions button:hover:not(:disabled) {
@@ -163,12 +283,12 @@ body {
 }
 
 .error {
-  color: #f85149;
+  color: var(--crit-text);
   font-size: 12px;
 }
 
 h3 {
-  margin: 14px 0 6px;
+  margin: var(--space-md) 0 var(--space-sm);
   font-size: 13px;
   color: var(--muted);
   font-weight: 600;
@@ -180,15 +300,15 @@ h3 {
 }
 
 .ok-msg {
-  color: #3fb950;
+  color: var(--ok-text);
   font-size: 13px;
 }
 
 .bar-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 8px 0;
+  gap: var(--space-sm);
+  margin: var(--space-sm) 0;
 }
 
 .bar-label {
@@ -207,19 +327,19 @@ h3 {
 .bar-fill {
   height: 100%;
   border-radius: 5px;
-  transition: width 0.3s;
+  transition: width var(--dur) var(--ease);
 }
 
 .bar-fill.ok {
-  background: #3fb950;
+  background: var(--ok);
 }
 
 .bar-fill.warn {
-  background: #d29922;
+  background: var(--warn);
 }
 
 .bar-fill.crit {
-  background: #f85149;
+  background: var(--crit);
 }
 
 .bar-pct {
@@ -241,33 +361,47 @@ h3 {
 code {
   background: var(--panel);
   padding: 1px 5px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
   font-size: 12px;
 }
 
+/* Botón de texto inline (p. ej. mostrar/ocultar contraseña dentro de un <p>):
+   exento de 44x44 por WCAG 2.5.8 (destino en línea de texto), cubierto a 24px. */
 .mini {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  vertical-align: middle;
   background: none;
   border: none;
   color: var(--accent);
   cursor: pointer;
   font: inherit;
   font-size: 12px;
+  padding: var(--space-xs) var(--space-xs);
   margin-left: 6px;
+  transition: color var(--dur) var(--ease);
+}
+
+.mini:hover {
+  color: var(--text);
 }
 
 .pw-change {
   display: flex;
-  gap: 8px;
-  margin-top: 8px;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
 }
 
 .pw-change input {
   flex: 1;
+  min-height: var(--target);
   background: var(--panel);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
   font: inherit;
 }
 
@@ -280,7 +414,7 @@ code {
 .mcp-list li {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   padding: 4px 0;
   font-size: 14px;
 }
@@ -288,9 +422,11 @@ code {
 .config-view {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px;
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+  font-family: var(--font-mono);
   font-size: 11px;
+  box-shadow: var(--shadow-sm);
   overflow: auto;
   max-height: 320px;
   white-space: pre-wrap;

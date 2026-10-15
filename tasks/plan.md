@@ -70,7 +70,7 @@ Cada fase termina con su checkpoint antes de pasar a la siguiente:
 
 - **Consistencia de archivos**: cualquier cambio que toque comandos, estructura o config global **debe** actualizar README.md, `tasks/plan.md`, `tasks/todo.md` y las `specs/SPEC-*.md` afectadas en el mismo cambio.
 - **i18n**: todo texto de UI vía claves en `frontend/src/i18n/{es,en}.json`.
-- **UI/UX**: aplicar el sistema de diseño generado con `ui-ux-pro-max` (persistido en `design-system/opencode-tray/MASTER.md`) — se genera al iniciar la Fase 1.
+- **UI/UX**: sistema de diseño generado con `ui-ux-pro-max` y persistido en `design-system/opencode-tray/MASTER.md` (generado y aplicado en la Fase 5): paleta, tipografía, espaciado y checklist de accesibilidad (contraste ≥ 4.5:1, foco visible, targets ≥ 44px).
 - **Seguridad**: secretos enmascarados, token/contraseña nunca en logs ni commits.
 
 ## 8. Distribución

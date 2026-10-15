@@ -69,6 +69,8 @@ function onNotify(kind: string, e: Event) {
       <span>{{ t('notify.service') }}</span>
     </label>
 
-    <button class="mini" @click="NotifyEvaluate">{{ t('notify.test') }}</button>
+    <div class="actions">
+      <button @click="NotifyEvaluate">{{ t('notify.test') }}</button>
+    </div>
   </section>
 </template>

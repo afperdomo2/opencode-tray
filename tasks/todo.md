@@ -151,17 +151,20 @@
 
 ## Fase 5 — Pulido + release
 
-- [ ] **Task: Sistema de diseño (ui-ux-pro-max)**
+- [x] **Task: Sistema de diseño (ui-ux-pro-max)**
+  - **Hecho:** `design-system/opencode-tray/MASTER.md` generado (Dark Mode OLED) y **aplicado** en `frontend/src/style.css` (+ `Ajustes.vue`): tokens `--color-*`/`--space-*`/tipografía (IBM Plex Sans + JetBrains Mono, con fallback a fuentes del sistema). A11y verificado por script WCAG: contraste texto ≥ 5.65:1 (todas las parejas PASS), foco visible (`:focus-visible`), targets ≥ 44px (nav, acciones, toggles, select, inputs; el `.mini` inline queda exento por WCAG 2.5.8). `prefers-reduced-motion` respetado. El "Page Pattern" (FAQ Landing) de MASTER no aplica a esta app y no se aplicó.
   - Acceptance: `design-system/opencode-tray/MASTER.md` generado y aplicado (estilo, paleta, tipografía, espaciado); checklist de accesibilidad (contraste 4.5:1, foco visible, targets ≥44px) cumplido.
-  - Verify: revisión visual + checklist `pro-rules.md` de la skill.
+  - Verify: revisión visual + checklist `pro-rules.md` de la skill (aplicado el subconjunto web/desktop; contrastes verificados por script).
   - Files: `design-system/opencode-tray/MASTER.md`, `frontend/src/**`.
 
-- [ ] **Task: README final + pasada de consistencia**
+- [x] **Task: README final + pasada de consistencia**
+  - **Hecho:** README reescrito con estado real (Fase 5), comandos, funcionalidad, estructura (incluye `design-system/`), requisitos y limitaciones (notificaciones deshabilitadas, fuentes web, quirk de `wails dev`). `plan.md` corregido (design system generado/aplicado en Fase 5). `SPEC-notifications.md` con nota de "Estado" (envío deshabilitado). `todo.md` sincronizado.
   - Acceptance: README documenta comandos, estructura y uso; specs/plan/todo reflejan el estado real (sin secciones huérfanas).
   - Verify: revisión manual cruzando README ↔ specs ↔ `tasks/`.
   - Files: `README.md`, `specs/SPEC-*.md`, `tasks/plan.md`, `tasks/todo.md`.
 
-- [ ] **Task: Build portable + release**
+- [x] **Task: Build portable + release**
+  - **Hecho:** `wails build` genera `build/bin/opencode-tray.exe` (portable único, ~11.5 MB) con el design system aplicado. Notas de release + checklist de validación en [`RELEASE.md`](../RELEASE.md). Verificación final: `gofmt` limpio, `go test ./...` (6 módulos ok), `pnpm test` (6 tests), `go build` OK.
   - Acceptance: `wails build` genera un `.exe` portable único y funcional.
-  - Verify: ejecutar el `.exe` en Windows limpio.
-  - Files: `build/bin/*.exe`, notas de release.
+  - Verify: ejecutar el `.exe` en Windows limpio (checklist en `RELEASE.md`).
+  - Files: `build/bin/*.exe`, `RELEASE.md` (notas de release).

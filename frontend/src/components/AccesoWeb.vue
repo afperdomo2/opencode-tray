@@ -90,7 +90,12 @@ async function changePassword() {
     </p>
 
     <div class="pw-change">
-      <input v-model="newPw" type="password" :placeholder="t('web.newPassword')" />
+      <input
+        v-model="newPw"
+        type="password"
+        :placeholder="t('web.newPassword')"
+        :aria-label="t('web.newPassword')"
+      />
       <button :disabled="busy || !newPw" @click="changePassword">{{ t('web.save') }}</button>
     </div>
     <p v-if="saved" class="ok-msg">{{ t('web.saved') }}</p>

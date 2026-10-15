@@ -2,6 +2,8 @@
 
 > Traza al module id `notifications` del `CAPABILITY-MAP.md`. Depende de `shell`, `usage` y `service-control`. Último módulo en construirse (reacciona a los demás).
 
+> **⚠ Estado actual (post-Fase 4):** El **envío** de toasts está **deshabilitado en runtime**. `app.go` **no inyecta sender**, por lo que `notifications.New()` mantiene el sender **no-op**: la lógica (ritmo / agotamiento / servicio / dedupe) se evalúa y está **probada** (tests Go + Vitest en verde), pero **no se muestra ningún toast**. Motivo: el envío vía `wailsruntime.SendNotification` (go-toast en Windows) **bloqueaba el bucle de mensajes de `energye/systray`** y dejaba la bandeja muda (ni clic izquierdo ni menú contextual); por eso se retiró en la Fase 4. **Para reactivar:** inyectar un sender en `startup()` por una vía que **no** entre en conflicto con la bandeja (p. ej. toast vía PowerShell u otro mecanismo) y validar que clic y menú de la bandeja siguen operativos. *Esta nota prevalece sobre las menciones a `beeep` / envío activo del resto del documento, que quedaron de la planificación original.*
+
 ## Objective
 
 `notifications` emite **toasts nativos** ante dos situaciones de consumo (definidas en el mapa) y, opcionalmente, ante cambios de estado del servicio. Todo es configurable y **sin spam** (dedupe por período).

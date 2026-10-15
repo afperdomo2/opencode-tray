@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"os"
-	"time"
 
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 
@@ -58,14 +57,11 @@ func (a *App) startup(ctx context.Context) {
 	// Controlador de ventana (mostrar/ocultar el panel).
 	a.win = shell.NewWindowController(wailsWindow{ctx})
 
-	// Envío real de notificaciones: toast nativo de Wails (sin librería de bandeja,
-	// evitando el conflicto beeep/energye-systray).
-	a.notifier.SetSender(func(title, msg string, lvl notifications.Level) error {
-		return wailsruntime.SendNotification(a.ctx, wailsruntime.NotificationOptions{
-			Title: title,
-			Body:  msg,
-		})
-	})
+	// Envío de notificaciones DESHABILITADO (Fase 4): inyectar aquí
+	// wailsruntime.SendNotification (go-toast en Windows) bloqueaba el bucle de
+	// mensajes de energye/systray y dejaba la bandeja muda (ni clic izquierdo ni
+	// menú contextual). El notifier conserva su sender no-op; la lógica de
+	// decisión queda probada y lista para reactivarse por una vía segura.
 
 	// Arrancar el tray: clic izquierdo muestra el panel; "Salir" cierra la app.
 	a.tray = shell.NewTrayHandler(shell.TrayOptions{
@@ -75,9 +71,6 @@ func (a *App) startup(ctx context.Context) {
 		OnQuit:  func() { wailsruntime.Quit(ctx) },
 	})
 	a.tray.Start()
-
-	// Monitoreo en segundo plano: evalúa consumo y servicio para disparar alertas.
-	go a.runNotifierLoop()
 }
 
 // shutdown libera el icono del tray al salir.
@@ -208,21 +201,9 @@ func (a *App) ConfigOpenDir() error { return a.cfgviewer.OpenConfigDir() }
 
 // --- Notificaciones (notifications) ---
 
-// runNotifierLoop evalúa consumo y estado del servicio periódicamente para
-// disparar alertas (ritmo, agotamiento, servicio detenido).
-func (a *App) runNotifierLoop() {
-	for {
-		st, _ := a.settings.Load()
-		interval := time.Duration(st.RefreshMin) * time.Minute
-		if interval <= 0 {
-			interval = 15 * time.Minute
-		}
-		a.evaluateNotifier()
-		time.Sleep(interval)
-	}
-}
-
 // evaluateNotifier hace una evaluación inmediata del consumo y el servicio.
+// Nota: el envío de toasts está deshabilitado (ver startup); esto solo evalúa
+// la lógica con el sender no-op, por lo que no dispara nada hacia la bandeja.
 func (a *App) evaluateNotifier() {
 	u, err := a.usage.Fetch()
 	if err != nil {

@@ -142,6 +142,7 @@
   - Files: `internal/notifications/servicewatch.go`, `*_test.go`.
 
 - [x] **Task: Envío de toasts + ajustes**
+  - **Estado post-Fase 4:** lógica y panel de ajustes listos (tests verdes), pero el **envío está deshabilitado en runtime** — `app.go` no inyecta sender (queda el no-op). Motivo: `wailsruntime.SendNotification` (go-toast) bloqueaba la bandeja. *Pendiente reactivar por una vía segura (ver `SPEC-notifications.md` → Estado).*
   - Acceptance: `Notify` envía vía `beeep`; tipos y umbrales configurables desde Ajustes.
   - Verify: `go test` con sender mockeado + Vitest del panel de Ajustes.
   - Files: `internal/notifications/notify.go`, `internal/notifications/notifications.go`, `*_test.go`, `frontend/src/components/notifications/`.

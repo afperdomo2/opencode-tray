@@ -1,6 +1,22 @@
-# Release — OpenCode Tray v1.0.0
+# Release — OpenCode Tray v1.2.0
 
-Primera entrega **portable** de OpenCode Tray: app de bandeja (tray) para Windows que controla el servicio de OpenCode, el acceso web, el consumo de OpenCode Go y la configuración.
+App de bandeja (tray) para Windows que controla el servicio de OpenCode, el acceso web, el consumo de OpenCode Go y la configuración.
+
+## Novedades v1.2.0
+
+- **Menú simplificado**: se quita la pestaña **Consumo** (su información vive en Resumen).
+- **Idioma movido a Ajustes** (control segmentado ES | EN); se elimina la cabecera del panel.
+- **Resumen (Servicio y Config)**: botones en tamaño **`sm`** (más pequeños) pero **con texto e icono**.
+- **Config JSON en modal**: el bloque Config (Resumen y sección) tiene **3 botones** (editor / carpeta / JSON); el JSON se abre en un **modal** accesible.
+- **Ajustes**: los checkboxes se reemplazan por **switches** estilizados.
+- **Color graduado** en las barras de consumo: verde → ámbar → naranja → rojo según proximidad al límite.
+
+## Novedades v1.1.0
+
+- **Vista Resumen (overview)** como pantalla inicial: Consumo → MCP/Config → Servicio, en cards.
+- **Iconos SVG** en navegación y botones (sin emoji).
+- **Idioma** como control segmentado (ES | EN); se elimina el título redundante de la cabecera.
+- **Config JSON** en acordeón (colapsado por defecto) y **profundidad visual** (cards, sombras, hover).
 
 ## Artefacto
 

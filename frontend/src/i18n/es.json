@@ -63,6 +63,8 @@
   },
   "common": {
     "language": "Idioma",
+    "general": "General",
+    "close": "Cerrar",
     "autoStart": "Iniciar con Windows"
   }
 }

@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Icon from './Icon.vue'
-import Accordion from './Accordion.vue'
+import Modal from './Modal.vue'
 import {
   ConfigListMCP,
   ConfigJSON,
@@ -15,6 +15,7 @@ const mcp = ref<{ name: string; status: string }[]>([])
 const configText = ref('')
 const loading = ref(true)
 const error = ref('')
+const showJson = ref(false)
 
 async function refresh() {
   loading.value = true
@@ -53,11 +54,15 @@ onMounted(refresh)
         <button @click="ConfigOpenDir">
           <Icon name="folder" :size="16" />{{ t('config.openDir') }}
         </button>
+        <button @click="showJson = true">
+          <Icon name="code" :size="16" />{{ t('config.json') }}
+        </button>
       </div>
 
-      <Accordion :title="t('config.json')">
+      <Modal :open="showJson" :title="t('config.json')" @close="showJson = false">
         <pre class="config-view">{{ configText }}</pre>
-      </Accordion>
+      </Modal>
+
       <p v-if="error" class="error">{{ error }}</p>
     </template>
   </section>

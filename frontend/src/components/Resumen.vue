@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Icon from './Icon.vue'
-import Accordion from './Accordion.vue'
+import Modal from './Modal.vue'
 import {
   ServiceStatus,
   ServiceStart,
@@ -11,6 +11,8 @@ import {
   UsageFetch,
   ConfigListMCP,
   ConfigJSON,
+  ConfigOpenInEditor,
+  ConfigOpenDir,
 } from '../../wailsjs/go/main/App'
 
 // Vista de overview (landing): compone datos ya existentes.
@@ -27,10 +29,14 @@ const configText = ref('')
 const loading = ref(true)
 const busy = ref(false)
 const error = ref('')
+const showJson = ref(false)
 
-// Severidad por umbral (misma regla que Consumo): >=98 crítico, >=90 aviso.
+// Severidad graduada por proximidad al límite (ver SPEC-ui-ux).
 function sev(pct: number): string {
-  return pct >= 98 ? 'crit' : pct >= 90 ? 'warn' : 'ok'
+  if (pct >= 98) return 'crit'
+  if (pct >= 85) return 'high'
+  if (pct >= 70) return 'warn'
+  return 'ok'
 }
 
 const windows = computed(() => [
@@ -101,7 +107,7 @@ async function svcAction(fn: () => Promise<void>) {
               :style="{ width: Math.min(100, w.pct) + '%' }"
             ></div>
           </div>
-          <span class="bar-pct">{{ Math.round(w.pct) }}%</span>
+          <span class="bar-pct" :class="sev(w.pct)">{{ Math.round(w.pct) }}%</span>
         </div>
       </div>
 
@@ -123,9 +129,21 @@ async function svcAction(fn: () => Promise<void>) {
             <span class="muted">{{ s.status }}</span>
           </li>
         </ul>
-        <Accordion :title="t('config.json')">
+        <div class="actions sm">
+          <button @click="ConfigOpenInEditor">
+            <Icon name="externalLink" :size="14" />{{ t('config.openEditor') }}
+          </button>
+          <button @click="ConfigOpenDir">
+            <Icon name="folder" :size="14" />{{ t('config.openDir') }}
+          </button>
+          <button @click="showJson = true">
+            <Icon name="code" :size="14" />{{ t('config.json') }}
+          </button>
+        </div>
+
+        <Modal :open="showJson" :title="t('config.json')" @close="showJson = false">
           <pre class="config-view">{{ configText }}</pre>
-        </Accordion>
+        </Modal>
       </div>
 
       <!-- 3 · Servicio -->
@@ -139,18 +157,18 @@ async function svcAction(fn: () => Promise<void>) {
           <span>{{ running ? t('service.running') : t('service.stopped') }}</span>
         </div>
         <p v-if="url" class="url">{{ url }}</p>
-        <div class="actions">
+        <div class="actions sm">
           <button :disabled="busy || running" @click="svcAction(() => ServiceStart())">
-            <Icon name="play" :size="16" />{{ t('service.start') }}
+            <Icon name="play" :size="14" />{{ t('service.start') }}
           </button>
           <button :disabled="busy || !running" @click="svcAction(() => ServiceStop())">
-            <Icon name="stop" :size="16" />{{ t('service.stop') }}
+            <Icon name="stop" :size="14" />{{ t('service.stop') }}
           </button>
           <button :disabled="busy" @click="svcAction(() => ServiceForceStop())">
-            <Icon name="zap" :size="16" />{{ t('service.forceStop') }}
+            <Icon name="zap" :size="14" />{{ t('service.forceStop') }}
           </button>
           <button :disabled="busy" @click="refresh">
-            <Icon name="refresh" :size="16" />{{ t('service.refresh') }}
+            <Icon name="refresh" :size="14" />{{ t('service.refresh') }}
           </button>
         </div>
       </div>

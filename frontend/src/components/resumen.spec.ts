@@ -21,6 +21,8 @@ vi.mock('../../wailsjs/go/main/App', () => ({
   UsageFetch: mocks.usage,
   ConfigListMCP: mocks.mcp,
   ConfigJSON: mocks.json,
+  ConfigOpenInEditor: vi.fn(),
+  ConfigOpenDir: vi.fn(),
 }))
 
 const makeI18n = () =>
@@ -32,45 +34,62 @@ const usage = (r: number, w: number, m: number) => ({
   monthly: { percent: m, resetsAt: '' },
 })
 
+async function mountResumen(r: number, w: number, m: number, running = true) {
+  mocks.status.mockResolvedValue({ running, url: running ? 'http://0.0.0.0:49374' : '' })
+  mocks.usage.mockResolvedValue(usage(r, w, m))
+  mocks.mcp.mockResolvedValue([{ name: 'context7', status: 'connected' }])
+  mocks.json.mockResolvedValue('{}')
+  const wrapper = mount(Resumen, { global: { plugins: [makeI18n()] } })
+  await flushPromises()
+  return wrapper
+}
+
 describe('Resumen', () => {
   it('muestra consumo, config y servicio (en ese orden de bloques)', async () => {
-    mocks.status.mockResolvedValue({ running: true, url: 'http://0.0.0.0:49374' })
-    mocks.usage.mockResolvedValue(usage(10, 95, 50))
-    mocks.mcp.mockResolvedValue([{ name: 'context7', status: 'connected' }])
-    mocks.json.mockResolvedValue('{}')
-
-    const w = mount(Resumen, { global: { plugins: [makeI18n()] } })
-    await flushPromises()
-
+    const w = await mountResumen(10, 50, 20)
     const text = w.text()
     expect(text).toContain('Consumo')
     expect(text).toContain('Config')
     expect(text).toContain('Servicio')
-    expect(text).toContain('95%')
     expect(text).toContain('http://0.0.0.0:49374')
   })
 
-  it('marca la severidad del consumo (>=98 crítico)', async () => {
-    mocks.status.mockResolvedValue({ running: false, url: '' })
-    mocks.usage.mockResolvedValue(usage(0, 40, 99))
-    mocks.mcp.mockResolvedValue([])
-    mocks.json.mockResolvedValue('{}')
-
-    const w = mount(Resumen, { global: { plugins: [makeI18n()] } })
-    await flushPromises()
-
-    expect(w.find('.bar-fill.crit').exists()).toBe(true)
+  it('el bloque de servicio usa botones "sm" con texto (4 botones)', async () => {
+    const w = await mountResumen(10, 50, 20)
+    const smGroups = w.findAll('.actions.sm')
+    const serviceButtons = smGroups[smGroups.length - 1].findAll('button')
+    expect(serviceButtons.length).toBe(4)
+    expect(serviceButtons.map((b) => b.text())).toEqual([
+      'Iniciar',
+      'Detener',
+      'Forzar detener',
+      'Actualizar',
+    ])
   })
 
-  it('el JSON de config queda colapsado por defecto', async () => {
-    mocks.status.mockResolvedValue({ running: true, url: '' })
-    mocks.usage.mockResolvedValue(usage(1, 1, 1))
-    mocks.mcp.mockResolvedValue([])
-    mocks.json.mockResolvedValue('{"a":1}')
+  it('el bloque de config tiene 3 botones', async () => {
+    const w = await mountResumen(10, 50, 20)
+    const cards = w.findAll('.card')
+    expect(cards[1].findAll('.actions button').length).toBe(3)
+  })
 
-    const w = mount(Resumen, { global: { plugins: [makeI18n()] } })
-    await flushPromises()
+  it('el botón de JSON abre el modal', async () => {
+    const w = await mountResumen(10, 50, 20)
+    expect(w.find('.modal').exists()).toBe(false)
+    const configCard = w.findAll('.card')[1]
+    await configCard.findAll('.actions button')[2].trigger('click')
+    expect(w.find('.modal').exists()).toBe(true)
+  })
 
-    expect(w.find('.acc-head').attributes('aria-expanded')).toBe('false')
+  it('colorea el consumo de forma graduada (crítico >= 98)', async () => {
+    const w = await mountResumen(0, 40, 99)
+    expect(w.find('.bar-fill.crit').exists()).toBe(true)
+    expect(w.find('.bar-pct.crit').exists()).toBe(true)
+  })
+
+  it('usa ámbar/naranja según proximidad al límite', async () => {
+    const w = await mountResumen(72, 90, 10)
+    expect(w.find('.bar-fill.warn').exists()).toBe(true) // 72% -> ámbar
+    expect(w.find('.bar-fill.high').exists()).toBe(true) // 90% -> naranja
   })
 })

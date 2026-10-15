@@ -36,6 +36,7 @@ shell
 | 4 | `notifications` | ritmo + agotamiento + servicio detenido |
 | 5 | Pulido + release | README final, design system aplicado, `.exe` portable, instalador (posterior) |
 | 6 | `resumen` | vista overview (landing) + ajustes de UI/UX (iconos, cabecera, idioma segmentado, acordeón de config, profundidad visual) |
+| 7 | `ui-ux` | refinamientos: quitar menú Consumo, mover idioma a Ajustes, botones de servicio compactos, JSON de config en modal, switches en Ajustes |
 
 Las fases 3a/3b/3c se pueden hacer **en paralelo** (independientes entre sí).
 

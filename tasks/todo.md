@@ -198,3 +198,39 @@
   - Acceptance: componente `Accordion.vue` accesible (`aria-expanded`); el JSON de config se muestra **colapsado por defecto** en Resumen y en Config; se añade profundidad (cards, sombras, hover) usando tokens del design system.
   - Verify: Vitest (colapsado por defecto; abre/cierra; `aria-expanded`) — en verde; `wails build` OK.
   - Files: `frontend/src/components/Accordion.vue`, `accordion.spec.ts`, `Config.vue`, `style.css`.
+
+---
+
+## Fase 7 — ui-ux (refinamientos)
+
+> Spec: [`specs/SPEC-ui-ux.md`](../specs/SPEC-ui-ux.md). Frontend, sin backend nuevo.
+
+- [x] **Task: Quitar el menú Consumo**
+  - **Hecho:** el nav ya no incluye Consumo; `Consumo.vue` eliminado (su info vive en Resumen).
+  - Acceptance: la navegación no incluye Consumo; se elimina `Consumo.vue` y su ruta (los datos quedan en Resumen).
+  - Verify: Vitest (App no renderiza sección `consumo`); build OK.
+  - Files: `frontend/src/App.vue`, eliminar `frontend/src/components/Consumo.vue`.
+
+- [x] **Task: Mover el idioma a Ajustes (y quitar la cabecera)**
+  - **Hecho:** `LanguageSwitch` movido a `Ajustes.vue`; eliminada la cabecera de `App.vue` (sin título ni selector).
+  - Acceptance: `LanguageSwitch` se mueve a `Ajustes.vue`; se elimina la cabecera vacía de `App.vue`.
+  - Verify: Vitest (cambia locale) — en verde.
+  - Files: `frontend/src/App.vue`, `frontend/src/components/Ajustes.vue`, `LanguageSwitch.vue`.
+
+- [x] **Task: Resumen — botones sm (con texto) + config (3 botones + modal)**
+  - **Hecho:** los 4 botones de servicio y los 3 de config usan la variante **`sm`** (`.actions.sm`: 30px, 12px, icono 14) **con texto e icono** (no solo-icono); JSON en **modal** accesible (también en la sección Config). Se eliminó el acordeón (Fase 6) y `Accordion.vue`.
+  - Acceptance: botones de Servicio y Config del Resumen en tamaño **`sm`** con texto; bloque Config con **3 botones** (editor/carpeta/JSON); el JSON se abre en **modal** (también en la sección Config).
+  - Verify: Vitest (4 botones `sm` con texto, 3 botones en config, abre modal) — en verde.
+  - Files: `Resumen.vue`, `Config.vue`, `Modal.vue`, `modal.spec.ts`, `resumen.spec.ts`, `style.css`.
+
+- [x] **Task: Ajustes — switches estilizados**
+  - **Hecho:** los checkboxes de Ajustes usan `Switch.vue` (pill con knob), accesible.
+  - Acceptance: los checkboxes de Ajustes usan `Switch.vue` (pill con knob), accesible.
+  - Verify: Vitest (`Switch` refleja checked y emite change) — en verde.
+  - Files: `Ajustes.vue`, `Switch.vue`, `switch.spec.ts`, `style.css`.
+
+- [x] **Task: Resumen — color de consumo graduado**
+  - **Hecho:** barras y `%` coloreados por proximidad al límite: verde `<70`, ámbar `70–84`, naranja `85–97`, rojo `≥98` (se mantiene el rojo en 98, coherente con `usage`). Contraste verificado por script (≥5.59:1).
+  - Acceptance: barra y `%` cambian de color de forma graduada; el número `%` acompaña al color (no solo color).
+  - Verify: Vitest (clases `warn`/`high`/`crit` en barra y `%`) — en verde.
+  - Files: `Resumen.vue`, `style.css`, `resumen.spec.ts`.

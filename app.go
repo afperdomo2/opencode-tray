@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"os"
+	"time"
 
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"opencode-tray/internal/configviewer"
+	"opencode-tray/internal/notifications"
 	"opencode-tray/internal/servicecontrol"
 	"opencode-tray/internal/shell"
 	"opencode-tray/internal/usage"
@@ -24,6 +26,7 @@ type App struct {
 	usage     *usage.Service
 	webaccess *webaccess.Service
 	cfgviewer *configviewer.Service
+	notifier  *notifications.Service
 }
 
 // NewApp crea la App con sus dependencias del backend.
@@ -44,6 +47,7 @@ func NewApp() *App {
 		usage:     usage.New(),
 		webaccess: webaccess.New(svc),
 		cfgviewer: configviewer.New(),
+		notifier:  notifications.New(),
 	}
 }
 
@@ -54,6 +58,15 @@ func (a *App) startup(ctx context.Context) {
 	// Controlador de ventana (mostrar/ocultar el panel).
 	a.win = shell.NewWindowController(wailsWindow{ctx})
 
+	// Envío real de notificaciones: toast nativo de Wails (sin librería de bandeja,
+	// evitando el conflicto beeep/energye-systray).
+	a.notifier.SetSender(func(title, msg string, lvl notifications.Level) error {
+		return wailsruntime.SendNotification(a.ctx, wailsruntime.NotificationOptions{
+			Title: title,
+			Body:  msg,
+		})
+	})
+
 	// Arrancar el tray: clic izquierdo muestra el panel; "Salir" cierra la app.
 	a.tray = shell.NewTrayHandler(shell.TrayOptions{
 		Icon:    trayIcon,
@@ -62,6 +75,9 @@ func (a *App) startup(ctx context.Context) {
 		OnQuit:  func() { wailsruntime.Quit(ctx) },
 	})
 	a.tray.Start()
+
+	// Monitoreo en segundo plano: evalúa consumo y servicio para disparar alertas.
+	go a.runNotifierLoop()
 }
 
 // shutdown libera el icono del tray al salir.
@@ -189,3 +205,37 @@ func (a *App) ConfigOpenInEditor() error {
 
 // ConfigOpenDir abre la carpeta de configuración de OpenCode.
 func (a *App) ConfigOpenDir() error { return a.cfgviewer.OpenConfigDir() }
+
+// --- Notificaciones (notifications) ---
+
+// runNotifierLoop evalúa consumo y estado del servicio periódicamente para
+// disparar alertas (ritmo, agotamiento, servicio detenido).
+func (a *App) runNotifierLoop() {
+	for {
+		st, _ := a.settings.Load()
+		interval := time.Duration(st.RefreshMin) * time.Minute
+		if interval <= 0 {
+			interval = 15 * time.Minute
+		}
+		a.evaluateNotifier()
+		time.Sleep(interval)
+	}
+}
+
+// evaluateNotifier hace una evaluación inmediata del consumo y el servicio.
+func (a *App) evaluateNotifier() {
+	u, err := a.usage.Fetch()
+	if err != nil {
+		return
+	}
+	svcStatus, svcErr := a.service.Status()
+	running := svcErr == nil && svcStatus.Running
+	a.notifier.Evaluate(u, running)
+}
+
+// NotifyEvaluate fuerza una evaluación inmediata (manual).
+func (a *App) NotifyEvaluate() { a.evaluateNotifier() }
+
+// NotifySetEnabled habilita/deshabilita un tipo de alerta:
+// "burnrate", "exhaustion" o "service".
+func (a *App) NotifySetEnabled(kind string, on bool) { a.notifier.SetEnabled(kind, on) }

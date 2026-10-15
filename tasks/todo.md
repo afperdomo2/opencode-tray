@@ -126,22 +126,22 @@
 
 ## Fase 4 — notifications
 
-- [ ] **Task: Alerta de ritmo (burn rate) + dedupe**
+- [x] **Task: Alerta de ritmo (burn rate) + dedupe**
   - Acceptance: dispara en 20/40/60/80 % si `consumido − esperado ≥ 15`, solo weekly/monthly, una vez por hito/período.
   - Verify: `go test` (lógica pura: dispara/no dispara, dedupe, reset tras `resetsAt`).
   - Files: `internal/notifications/burnrate.go`, `internal/notifications/dedupe.go`, `*_test.go`.
 
-- [ ] **Task: Alertas de agotamiento (90/98/100)**
+- [x] **Task: Alertas de agotamiento (90/98/100)**
   - Acceptance: 90 % naranja, 98 % rojo, 100 % crítico, en las tres ventanas, con dedupe.
   - Verify: `go test` por umbral.
   - Files: `internal/notifications/thresholds.go`, `*_test.go`.
 
-- [ ] **Task: Estado del servicio (detenido inesperadamente)**
+- [x] **Task: Estado del servicio (detenido inesperadamente)**
   - Acceptance: notifica solo cuando pasa de corriendo → detenido sin acción del usuario.
   - Verify: `go test` con estados mockeados.
   - Files: `internal/notifications/servicewatch.go`, `*_test.go`.
 
-- [ ] **Task: Envío de toasts + ajustes**
+- [x] **Task: Envío de toasts + ajustes**
   - Acceptance: `Notify` envía vía `beeep`; tipos y umbrales configurables desde Ajustes.
   - Verify: `go test` con sender mockeado + Vitest del panel de Ajustes.
   - Files: `internal/notifications/notify.go`, `internal/notifications/notifications.go`, `*_test.go`, `frontend/src/components/notifications/`.

@@ -22,6 +22,14 @@ export function GetSettings() {
   return window['go']['main']['App']['GetSettings']();
 }
 
+export function NotifyEvaluate() {
+  return window['go']['main']['App']['NotifyEvaluate']();
+}
+
+export function NotifySetEnabled(arg1, arg2) {
+  return window['go']['main']['App']['NotifySetEnabled'](arg1, arg2);
+}
+
 export function SaveSettings(arg1) {
   return window['go']['main']['App']['SaveSettings'](arg1);
 }

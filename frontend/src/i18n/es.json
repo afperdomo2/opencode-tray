@@ -61,6 +61,13 @@
     "loading": "Cargando config…",
     "error": "No se pudo leer la configuración."
   },
+  "notify": {
+    "title": "Notificaciones",
+    "burnrate": "Ritmo de consumo",
+    "exhaustion": "Casi sin saldo",
+    "service": "Servicio detenido",
+    "test": "Probar ahora"
+  },
   "common": {
     "pending": "Pendiente de implementar",
     "language": "Idioma",

@@ -61,6 +61,13 @@
     "loading": "Loading config…",
     "error": "Could not read the configuration."
   },
+  "notify": {
+    "title": "Notifications",
+    "burnrate": "Usage pace",
+    "exhaustion": "Almost out",
+    "service": "Service stopped",
+    "test": "Test now"
+  },
   "common": {
     "pending": "Not implemented yet",
     "language": "Language",

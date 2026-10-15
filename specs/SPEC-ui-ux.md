@@ -31,6 +31,12 @@ Simplificar y pulir la experiencia del panel: menos navegación redundante, cont
 
    Se mantiene el **rojo en 98 %** (coherente con el spec de `usage`/notificaciones) y se añaden escalones previos (ámbar/naranja) para dar aviso **antes** de llegar al límite. El número `%` acompaña al color, así que la severidad **no** se transmite solo por color.
 
+7. **Estandarizar el tamaño de botón (`sm`).** El tamaño `sm` (usado en el Resumen) pasa a ser **el estándar de todos los menús/interfaces** (Servicio, Acceso web, Ajustes): `min-height 30px`, `font-size 12px`, icono `14px`, `padding 4px 8px`.
+
+8. **Unificar los menús "Servicio" y "Config".** Se **fusionan en una sola sección** (`Servicio`): control del servicio + servidores MCP + configuración (abrir editor/carpeta y JSON). El nav queda: **Resumen · Servicio · Acceso web · Ajustes**.
+
+9. **Dashboard (Resumen) = widgets sin botones.** El Resumen **unifica Servicio + Config en un widget** de solo lectura (estado + lista MCP) y **elimina los botones de acción**: las acciones viven en su menú. El dashboard es para **resúmenes/acceso**, no para operar.
+
 ## Tech Stack
 
 - Vue 3 (`<script setup lang="ts">`) + TypeScript; `vue-i18n`; iconos SVG inline (`Icon.vue`).
@@ -43,12 +49,13 @@ frontend/src/
 │   ├── Modal.vue        # NUEVO: overlay accesible (role=dialog, Esc, foco, backdrop)
 │   ├── Switch.vue       # NUEVO: switch estilizado (checkbox nativo oculto, visual propio)
 │   ├── Consumo.vue      # ELIMINADO (su contenido queda en Resumen)
-│   ├── Resumen.vue      # acciones de servicio compactas; 3 botones en config + modal
-│   ├── Config.vue       # 3 botones; JSON en modal
+│   ├── Config.vue       # ELIMINADO (fusionado en Servicio)
+│   ├── Servicio.vue     # UNIFICADO: servicio + MCP + configuración (JSON en modal)
+│   ├── Resumen.vue      # dashboard: widgets (Consumo · Servicio+Config) SIN botones
 │   ├── Ajustes.vue      # idioma (LanguageSwitch) + switches
 │   ├── LanguageSwitch.vue
 │   └── *.spec.ts
-└── App.vue              # sin cabecera; nav sin "consumo"
+└── App.vue              # sin cabecera; nav: Resumen · Servicio · Acceso web · Ajustes
 ```
 
 ## Code Style
@@ -87,6 +94,9 @@ frontend/src/
 - [ ] **Resumen → Config**: **3 botones** (tamaño `sm`); el JSON se abre en **modal** (también en la sección Config).
 - [ ] **Ajustes**: los checkboxes son un **switch** estilizado y accesible.
 - [ ] **Resumen**: las barras y el `%` cambian de color de forma graduada (verde → ámbar → naranja → rojo) según la proximidad al límite.
+- [ ] **Botones**: el tamaño `sm` es el **estándar** en todos los menús.
+- [ ] **Menús**: "Servicio" y "Config" están **unificados** (nav: Resumen · Servicio · Acceso web · Ajustes).
+- [ ] **Dashboard**: Resumen muestra **widgets sin botones** (Consumo · Servicio+Config).
 - [ ] Tests Vitest en verde; a11y mantenido.
 
 ## Decisiones cerradas
@@ -94,5 +104,7 @@ frontend/src/
 1. **Consumo** se elimina de la navegación; permanece en **Resumen**.
 2. **Idioma** se mueve a **Ajustes** (segmentado ES | EN); se **elimina la cabecera**.
 3. **JSON de config** → **modal** (no acordeón inline ni vista aparte).
-4. **Servicio y Config (Resumen)** → botones en tamaño **`sm`** (más pequeños) **conservando el texto** (no solo-icono).
+4. **Tamaño de botón `sm`** (30px / 12px / icono 14) es el **estándar en toda la app**.
 5. **Ajustes** → **switch** personalizado en lugar de checkbox nativo.
+6. **Servicio y Config** se **fusionan** en un único menú (`Servicio`).
+7. **Dashboard sin acciones**: el Resumen es solo **resumen/acceso** (widgets de solo lectura, **sin botones**); las acciones viven en su menú.

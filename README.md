@@ -20,13 +20,12 @@ cd frontend && pnpm build  # type-check (vue-tsc) + build del frontend
 
 ## Funcionalidad
 
-- **Resumen**: vista de inicio (overview) que centraliza el consumo (barras con **color graduado** según proximidad al límite), los MCP y el estado del servicio; el JSON de config se abre en un **modal**.
-- **Servicio**: estado (detenido/corriendo), iniciar / detener / **forzar detención** (workaround del bug de `opencode service stop`) / refrescar.
+- **Resumen**: dashboard de inicio (**solo lectura, sin acciones**) con widgets de consumo (barras con **color graduado** según proximidad al límite) y de servicio + config (estado y servidores MCP).
+- **Servicio** (unifica el antiguo Config): estado y control (iniciar / detener / **forzar detención** / refrescar) + servidores MCP + configuración (abrir en editor / abrir carpeta / **JSON en modal**).
 - **Acceso web**: modos local / red (por IP) / remoto (túnel); usuario (`opencode`) y contraseña (enmascarada) con cambio de contraseña.
-- **Config**: visor de servidores MCP + acciones (abrir en editor / abrir carpeta / ver JSON en modal); el JSON global va con secretos enmascarados.
 - **Ajustes**: idioma (es/en), auto-inicio con Windows y switches de notificaciones.
 
-La UI usa iconos SVG (sin emoji), control segmentado de idioma, switches estilizados y cards con profundidad (design system).
+La UI usa iconos SVG (sin emoji), botones en tamaño compacto estándar, control segmentado de idioma, switches estilizados y cards con profundidad (design system).
 
 > **Notificaciones**: la **lógica** de alertas (ritmo de consumo, agotamiento por umbral, servicio detenido inesperadamente) está implementada y probada, pero el **envío de toasts está deshabilitado en runtime** — el mecanismo de toast de Wails (go-toast) entraba en conflicto con el bucle de la bandeja y la dejaba muda. Detalle y cómo reactivarlo en [`specs/SPEC-notifications.md`](specs/SPEC-notifications.md).
 

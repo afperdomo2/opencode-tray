@@ -4,10 +4,12 @@ App de bandeja (tray) para Windows que controla el servicio de OpenCode, el acce
 
 ## Novedades v1.2.0
 
-- **Menú simplificado**: se quita la pestaña **Consumo** (su información vive en Resumen).
+- **Menú simplificado**: se quitan las pestañas **Consumo** y **Config**; nav = **Resumen · Servicio · Acceso web · Ajustes**.
+- **Servicio unificado**: incluye el control del servicio **y** la configuración (MCP + JSON en modal).
+- **Dashboard sin acciones**: el Resumen muestra **widgets** (Consumo · Servicio+Config) de **solo lectura**; las acciones viven en cada menú.
 - **Idioma movido a Ajustes** (control segmentado ES | EN); se elimina la cabecera del panel.
-- **Resumen (Servicio y Config)**: botones en tamaño **`sm`** (más pequeños) pero **con texto e icono**.
-- **Config JSON en modal**: el bloque Config (Resumen y sección) tiene **3 botones** (editor / carpeta / JSON); el JSON se abre en un **modal** accesible.
+- **Botones compactos (`sm`)**: tamaño **estándar** en toda la app (con texto e icono).
+- **Config JSON en modal** accesible.
 - **Ajustes**: los checkboxes se reemplazan por **switches** estilizados.
 - **Color graduado** en las barras de consumo: verde → ámbar → naranja → rojo según proximidad al límite.
 

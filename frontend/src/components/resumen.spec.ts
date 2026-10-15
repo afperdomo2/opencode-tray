@@ -10,19 +10,12 @@ const mocks = vi.hoisted(() => ({
   status: vi.fn(),
   usage: vi.fn(),
   mcp: vi.fn(),
-  json: vi.fn(),
 }))
 
 vi.mock('../../wailsjs/go/main/App', () => ({
   ServiceStatus: mocks.status,
-  ServiceStart: vi.fn(),
-  ServiceStop: vi.fn(),
-  ServiceForceStop: vi.fn(),
   UsageFetch: mocks.usage,
   ConfigListMCP: mocks.mcp,
-  ConfigJSON: mocks.json,
-  ConfigOpenInEditor: vi.fn(),
-  ConfigOpenDir: vi.fn(),
 }))
 
 const makeI18n = () =>
@@ -38,47 +31,25 @@ async function mountResumen(r: number, w: number, m: number, running = true) {
   mocks.status.mockResolvedValue({ running, url: running ? 'http://0.0.0.0:49374' : '' })
   mocks.usage.mockResolvedValue(usage(r, w, m))
   mocks.mcp.mockResolvedValue([{ name: 'context7', status: 'connected' }])
-  mocks.json.mockResolvedValue('{}')
   const wrapper = mount(Resumen, { global: { plugins: [makeI18n()] } })
   await flushPromises()
   return wrapper
 }
 
 describe('Resumen', () => {
-  it('muestra consumo, config y servicio (en ese orden de bloques)', async () => {
+  it('muestra los widgets de Consumo y Servicio (con MCP)', async () => {
     const w = await mountResumen(10, 50, 20)
     const text = w.text()
     expect(text).toContain('Consumo')
-    expect(text).toContain('Config')
     expect(text).toContain('Servicio')
+    expect(text).toContain('context7')
     expect(text).toContain('http://0.0.0.0:49374')
   })
 
-  it('el bloque de servicio usa botones "sm" con texto (4 botones)', async () => {
+  it('es solo resumen: no tiene botones de acción', async () => {
     const w = await mountResumen(10, 50, 20)
-    const smGroups = w.findAll('.actions.sm')
-    const serviceButtons = smGroups[smGroups.length - 1].findAll('button')
-    expect(serviceButtons.length).toBe(4)
-    expect(serviceButtons.map((b) => b.text())).toEqual([
-      'Iniciar',
-      'Detener',
-      'Forzar detener',
-      'Actualizar',
-    ])
-  })
-
-  it('el bloque de config tiene 3 botones', async () => {
-    const w = await mountResumen(10, 50, 20)
-    const cards = w.findAll('.card')
-    expect(cards[1].findAll('.actions button').length).toBe(3)
-  })
-
-  it('el botón de JSON abre el modal', async () => {
-    const w = await mountResumen(10, 50, 20)
-    expect(w.find('.modal').exists()).toBe(false)
-    const configCard = w.findAll('.card')[1]
-    await configCard.findAll('.actions button')[2].trigger('click')
-    expect(w.find('.modal').exists()).toBe(true)
+    expect(w.find('.actions').exists()).toBe(false)
+    expect(w.findAll('button').length).toBe(0)
   })
 
   it('colorea el consumo de forma graduada (crítico >= 98)', async () => {

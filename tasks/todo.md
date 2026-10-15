@@ -234,3 +234,21 @@
   - Acceptance: barra y `%` cambian de color de forma graduada; el número `%` acompaña al color (no solo color).
   - Verify: Vitest (clases `warn`/`high`/`crit` en barra y `%`) — en verde.
   - Files: `Resumen.vue`, `style.css`, `resumen.spec.ts`.
+
+- [x] **Task: Estandarizar el tamaño de botón `sm`**
+  - **Hecho:** `.actions button` adopta el tamaño `sm` (30px / 12px / icono 14) como **estándar** en toda la app; eliminada la variante `.actions.sm`.
+  - Acceptance: todos los botones de acción (Servicio, Acceso web, Ajustes) usan el tamaño `sm`.
+  - Verify: `vue-tsc`/build + revisión visual.
+  - Files: `style.css`, `Resumen.vue`, `Servicio.vue`, `AccesoWeb.vue`, `Ajustes.vue`.
+
+- [x] **Task: Unificar los menús Servicio y Config**
+  - **Hecho:** `Config.vue` fusionado en `Servicio.vue` (servicio + MCP + JSON en modal); nav = Resumen · Servicio · Acceso web · Ajustes; eliminado `nav.config`.
+  - Acceptance: existe una sola sección `Servicio` con control + configuración; el nav no tiene `config`.
+  - Verify: build OK; sin referencias huérfanas.
+  - Files: `Servicio.vue`, eliminar `Config.vue`, `App.vue`, `i18n/*`.
+
+- [x] **Task: Dashboard (Resumen) sin botones**
+  - **Hecho:** el Resumen unifica **Servicio + Config en un widget** de solo lectura (estado + MCP) y **elimina los botones** de acción.
+  - Acceptance: el Resumen no tiene botones; muestra widgets de Consumo y de Servicio+Config; las acciones están en los menús.
+  - Verify: Vitest (no hay `.actions` ni `<button>` en Resumen) — en verde.
+  - Files: `Resumen.vue`, `resumen.spec.ts`.

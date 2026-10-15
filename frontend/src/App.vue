@@ -6,18 +6,16 @@ import Icon from './components/Icon.vue'
 import Resumen from './components/Resumen.vue'
 import Servicio from './components/Servicio.vue'
 import AccesoWeb from './components/AccesoWeb.vue'
-import Config from './components/Config.vue'
 import Ajustes from './components/Ajustes.vue'
 
 const { t, locale } = useI18n()
 
 const active = ref('resumen')
-// Secciones con su icono (Consumo ya no está: vive dentro de Resumen).
+// Secciones (Servicio ya incluye la configuración; Resumen es el dashboard).
 const sections = [
   { id: 'resumen', icon: 'gauge' },
   { id: 'servicio', icon: 'server' },
   { id: 'accesoWeb', icon: 'globe' },
-  { id: 'config', icon: 'sliders' },
   { id: 'ajustes', icon: 'settings' },
 ]
 
@@ -51,7 +49,6 @@ onMounted(async () => {
       <Resumen v-if="active === 'resumen'" />
       <Servicio v-else-if="active === 'servicio'" />
       <AccesoWeb v-else-if="active === 'accesoWeb'" />
-      <Config v-else-if="active === 'config'" />
       <Ajustes v-else-if="active === 'ajustes'" />
     </main>
   </div>

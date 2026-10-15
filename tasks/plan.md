@@ -15,12 +15,13 @@ shell
        ├── web-access
        ├── usage          (paralelo con web-access y config-viewer)
        └── config-viewer
-             └── notifications   (lee usage + service-control)
+             ├── notifications   (lee usage + service-control)
+             └── resumen         (frontend: compone usage + config-viewer + service-control)
 ```
 
 - **Secuencial**: `shell` → `service-control` → resto.
 - **Paralelizable** (tras `service-control`): `web-access`, `usage`, `config-viewer`.
-- **Final**: `notifications`.
+- **Final**: `notifications` y `resumen` (frontend).
 
 ## 3. Orden de implementación (fases)
 
@@ -34,6 +35,7 @@ shell
 | 3c | `config-viewer` | visor MCP/skills/agents + config JSON + abrir en editor |
 | 4 | `notifications` | ritmo + agotamiento + servicio detenido |
 | 5 | Pulido + release | README final, design system aplicado, `.exe` portable, instalador (posterior) |
+| 6 | `resumen` | vista overview (landing) + ajustes de UI/UX (iconos, cabecera, idioma segmentado, acordeón de config, profundidad visual) |
 
 Las fases 3a/3b/3c se pueden hacer **en paralelo** (independientes entre sí).
 

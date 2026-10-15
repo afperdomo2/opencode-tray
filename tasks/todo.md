@@ -168,3 +168,33 @@
   - Acceptance: `wails build` genera un `.exe` portable único y funcional.
   - Verify: ejecutar el `.exe` en Windows limpio (checklist en `RELEASE.md`).
   - Files: `build/bin/*.exe`, `RELEASE.md` (notas de release).
+
+---
+
+## Fase 6 — resumen (overview + UI/UX)
+
+> Spec: [`specs/SPEC-resumen.md`](../specs/SPEC-resumen.md). Frontend, sin backend nuevo. Orden: Consumo → MCP/Config → Servicio.
+
+- [x] **Task: Vista Resumen (dashboard)**
+  - **Hecho:** `Resumen.vue` compone `ServiceStatus` + `UsageFetch` + `ConfigListMCP`/`ConfigJSON`; bloques Consumo → MCP/Config → Servicio; es la vista inicial.
+  - Acceptance: `Resumen.vue` compone `ServiceStatus` + `UsageFetch` + `ConfigListMCP`/`ConfigJSON`; bloques en orden Consumo → MCP/Config → Servicio; es la vista inicial; estados cargando/error.
+  - Verify: Vitest (servicio on/off, consumo ok/warn/crit, cargando, error) — en verde.
+  - Files: `frontend/src/components/Resumen.vue`, `resumen.spec.ts`, `App.vue`.
+
+- [x] **Task: Iconos SVG inline**
+  - **Hecho:** `Icon.vue` con set outline (nav, acciones, ojo, editor/carpeta, chevron, idioma, campana); aplicados en nav/botones; decorativos `aria-hidden`, botón solo-icono con `aria-label`; **sin emoji**.
+  - Acceptance: componente `Icon.vue` con set outline (nav, acciones, ojo, editor/carpeta, chevron, idioma); aplicados donde aportan; decorativos con `aria-hidden`, botones solo-icono con `aria-label`; **sin emoji**.
+  - Verify: Vitest (`Icon.vue` renderiza por nombre) — en verde.
+  - Files: `frontend/src/components/Icon.vue`, `*.vue`, `style.css`.
+
+- [x] **Task: Cabecera + idioma segmentado**
+  - **Hecho:** eliminado el título "OpenCode Tray" de la cabecera; `LanguageSwitch.vue` (segmentado ES|EN con icono) reemplaza al `<select>`; `main.go` con el fondo del nuevo design system.
+  - Acceptance: se **elimina** el título "OpenCode Tray" de la cabecera; el idioma pasa a `LanguageSwitch.vue` (control segmentado ES|EN, con icono).
+  - Verify: Vitest (cambia el locale es↔en) — en verde.
+  - Files: `frontend/src/App.vue`, `frontend/src/components/LanguageSwitch.vue`, `language-switch.spec.ts`, `i18n/*`.
+
+- [x] **Task: Acordeón de config (+ profundidad visual)**
+  - **Hecho:** `Accordion.vue` accesible (`aria-expanded`/`aria-controls`); JSON de config colapsado por defecto en Resumen y Config; cards + sombras + hover (tokens del design system). `Section.vue` (placeholder) eliminado por quedar huérfano.
+  - Acceptance: componente `Accordion.vue` accesible (`aria-expanded`); el JSON de config se muestra **colapsado por defecto** en Resumen y en Config; se añade profundidad (cards, sombras, hover) usando tokens del design system.
+  - Verify: Vitest (colapsado por defecto; abre/cierra; `aria-expanded`) — en verde; `wails build` OK.
+  - Files: `frontend/src/components/Accordion.vue`, `accordion.spec.ts`, `Config.vue`, `style.css`.

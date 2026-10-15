@@ -2,7 +2,9 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { GetSettings, SetLanguage } from '../wailsjs/go/main/App'
-import Section from './components/Section.vue'
+import Icon from './components/Icon.vue'
+import LanguageSwitch from './components/LanguageSwitch.vue'
+import Resumen from './components/Resumen.vue'
 import Servicio from './components/Servicio.vue'
 import Consumo from './components/Consumo.vue'
 import AccesoWeb from './components/AccesoWeb.vue'
@@ -12,7 +14,15 @@ import Ajustes from './components/Ajustes.vue'
 const { t, locale } = useI18n()
 
 const active = ref('resumen')
-const sections = ['resumen', 'servicio', 'accesoWeb', 'consumo', 'config', 'ajustes']
+// Secciones con su icono (set de Icon.vue).
+const sections = [
+  { id: 'resumen', icon: 'gauge' },
+  { id: 'servicio', icon: 'server' },
+  { id: 'accesoWeb', icon: 'globe' },
+  { id: 'consumo', icon: 'chart' },
+  { id: 'config', icon: 'sliders' },
+  { id: 'ajustes', icon: 'settings' },
+]
 
 onMounted(async () => {
   try {
@@ -23,9 +33,7 @@ onMounted(async () => {
   }
 })
 
-async function onLocale(e: Event) {
-  const lang = (e.target as HTMLSelectElement).value
-  locale.value = lang
+async function onLocale(lang: string) {
   try {
     await SetLanguage(lang)
   } catch {
@@ -37,38 +45,30 @@ async function onLocale(e: Event) {
 <template>
   <div class="app">
     <header class="app-header">
-      <h1>{{ t('app.title') }}</h1>
-      <select
-        class="lang-select"
-        :value="locale"
-        :aria-label="t('common.language')"
-        @change="onLocale"
-      >
-        <option value="es">ES</option>
-        <option value="en">EN</option>
-      </select>
+      <LanguageSwitch @change="onLocale" />
     </header>
 
     <nav class="app-nav" aria-label="Secciones">
       <button
-        v-for="id in sections"
-        :key="id"
+        v-for="s in sections"
+        :key="s.id"
         class="nav-btn"
-        :class="{ active: active === id }"
-        :aria-current="active === id ? 'page' : undefined"
-        @click="active = id"
+        :class="{ active: active === s.id }"
+        :aria-current="active === s.id ? 'page' : undefined"
+        @click="active = s.id"
       >
-        {{ t('nav.' + id) }}
+        <Icon :name="s.icon" :size="16" />
+        <span>{{ t('nav.' + s.id) }}</span>
       </button>
     </nav>
 
     <main class="app-content">
-      <Servicio v-if="active === 'servicio'" />
+      <Resumen v-if="active === 'resumen'" />
+      <Servicio v-else-if="active === 'servicio'" />
       <Consumo v-else-if="active === 'consumo'" />
       <AccesoWeb v-else-if="active === 'accesoWeb'" />
       <Config v-else-if="active === 'config'" />
       <Ajustes v-else-if="active === 'ajustes'" />
-      <Section v-else :name="active" />
     </main>
   </div>
 </template>

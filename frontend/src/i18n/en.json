@@ -10,14 +10,6 @@
     "config": "Config",
     "ajustes": "Settings"
   },
-  "sections": {
-    "resumen": "OpenCode overall status.",
-    "servicio": "Background service status and control.",
-    "accesoWeb": "Access modes: local, network or remote.",
-    "consumo": "OpenCode Go usage.",
-    "config": "MCP, skills and global configuration.",
-    "ajustes": "Application settings."
-  },
   "service": {
     "running": "Running",
     "stopped": "Stopped",
@@ -56,6 +48,7 @@
   "config": {
     "mcp": "MCP servers",
     "empty": "No MCP servers configured",
+    "json": "Configuration (JSON)",
     "openEditor": "Open in editor",
     "openDir": "Open folder",
     "loading": "Loading config…",
@@ -69,7 +62,6 @@
     "test": "Test now"
   },
   "common": {
-    "pending": "Not implemented yet",
     "language": "Language",
     "autoStart": "Start with Windows"
   }

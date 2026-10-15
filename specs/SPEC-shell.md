@@ -67,7 +67,8 @@ opencode-tray/
 │   ├── SPEC-web-access.md
 │   ├── SPEC-usage.md
 │   ├── SPEC-config-viewer.md
-│   └── SPEC-notifications.md
+│   ├── SPEC-notifications.md
+│   └── SPEC-resumen.md
 ├── tasks/
 │   ├── plan.md                # plan técnico
 │   └── todo.md                # lista de tareas

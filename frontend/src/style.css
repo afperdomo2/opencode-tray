@@ -127,32 +127,44 @@ h3 {
 .app-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: var(--space-sm) var(--space-md);
-  border-bottom: 1px solid var(--border);
+  justify-content: flex-end;
+  padding: var(--space-xs) var(--space-md);
 }
 
-.app-header h1 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.lang-select {
+/* Control segmentado de idioma (ES | EN) — compacto, 2 opciones */
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
   background: var(--panel);
-  color: var(--text);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: var(--space-xs) var(--space-sm);
-  min-height: var(--target);
-  min-width: var(--target);
-  font: inherit;
-  cursor: pointer;
-  transition: border-color var(--dur) var(--ease);
+  padding: 2px;
 }
 
-.lang-select:hover {
-  border-color: var(--accent);
+.lang-opt {
+  min-height: 32px;
+  min-width: 44px;
+  padding: 0 var(--space-sm);
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  transition:
+    background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.lang-opt:hover {
+  color: var(--text);
+}
+
+.lang-opt.active {
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .app-nav {
@@ -167,6 +179,7 @@ h3 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: var(--space-xs);
   min-height: var(--target);
   padding: var(--space-sm) var(--space-md);
   background: transparent;
@@ -181,6 +194,7 @@ h3 {
 }
 
 .nav-btn:hover {
+  background: var(--color-muted);
   color: var(--text);
 }
 
@@ -188,6 +202,40 @@ h3 {
   background: var(--accent);
   color: var(--on-accent);
   font-weight: 600;
+}
+
+/* --- Iconos (SVG inline) --- */
+.icon {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  vertical-align: middle;
+}
+
+.icon svg {
+  display: block;
+}
+
+/* Botón solo-icono (p. ej. mostrar/ocultar contraseña, inline en texto) */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
+  margin-left: var(--space-xs);
+  padding: var(--space-xs);
+  background: none;
+  border: none;
+  color: var(--accent);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  vertical-align: middle;
+  transition: color var(--dur) var(--ease);
+}
+
+.icon-btn:hover {
+  color: var(--text);
 }
 
 .app-content {
@@ -260,6 +308,7 @@ h3 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: var(--space-xs);
   min-height: var(--target);
   padding: var(--space-sm) var(--space-md);
   background: var(--panel);
@@ -270,11 +319,13 @@ h3 {
   font: inherit;
   transition:
     border-color var(--dur) var(--ease),
+    background-color var(--dur) var(--ease),
     opacity var(--dur) var(--ease);
 }
 
 .actions button:hover:not(:disabled) {
   border-color: var(--accent);
+  background: var(--color-muted);
 }
 
 .actions button:disabled {
@@ -366,26 +417,74 @@ code {
   font-size: 12px;
 }
 
-/* Botón de texto inline (p. ej. mostrar/ocultar contraseña dentro de un <p>):
-   exento de 44x44 por WCAG 2.5.8 (destino en línea de texto), cubierto a 24px. */
-.mini {
-  display: inline-flex;
-  align-items: center;
-  min-height: 24px;
-  vertical-align: middle;
-  background: none;
-  border: none;
-  color: var(--accent);
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
-  padding: var(--space-xs) var(--space-xs);
-  margin-left: 6px;
-  transition: color var(--dur) var(--ease);
+/* --- Acordeón (disclosure accesible) --- */
+.accordion {
+  margin-top: var(--space-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
 }
 
-.mini:hover {
+.acc-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: var(--target);
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
   color: var(--text);
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  transition: background-color var(--dur) var(--ease);
+}
+
+.acc-head:hover {
+  background: var(--color-muted);
+}
+
+.acc-head .icon {
+  transition: transform var(--dur) var(--ease);
+}
+
+.acc-head[aria-expanded='true'] .icon {
+  transform: rotate(180deg);
+}
+
+.acc-panel {
+  padding: 0 var(--space-md) var(--space-md);
+}
+
+/* --- Cards (profundidad / superficies) --- */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  box-shadow: var(--shadow-md);
+}
+
+.card:last-child {
+  margin-bottom: 0;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  color: var(--muted);
+}
+
+.card-head h3 {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
 }
 
 .pw-change {
@@ -420,7 +519,7 @@ code {
 }
 
 .config-view {
-  background: var(--panel);
+  background: var(--color-muted);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: var(--space-sm);

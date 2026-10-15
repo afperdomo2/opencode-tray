@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import Icon from './Icon.vue'
+import Accordion from './Accordion.vue'
 import {
   ConfigListMCP,
   ConfigJSON,
@@ -45,11 +47,17 @@ onMounted(refresh)
       </ul>
 
       <div class="actions">
-        <button @click="ConfigOpenInEditor">{{ t('config.openEditor') }}</button>
-        <button @click="ConfigOpenDir">{{ t('config.openDir') }}</button>
+        <button @click="ConfigOpenInEditor">
+          <Icon name="externalLink" :size="16" />{{ t('config.openEditor') }}
+        </button>
+        <button @click="ConfigOpenDir">
+          <Icon name="folder" :size="16" />{{ t('config.openDir') }}
+        </button>
       </div>
 
-      <pre class="config-view">{{ configText }}</pre>
+      <Accordion :title="t('config.json')">
+        <pre class="config-view">{{ configText }}</pre>
+      </Accordion>
       <p v-if="error" class="error">{{ error }}</p>
     </template>
   </section>

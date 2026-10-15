@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import Icon from './Icon.vue'
 import {
   ServiceStatus,
   ServiceStart,
@@ -53,16 +54,16 @@ async function run(fn: () => Promise<void>) {
 
     <div class="actions">
       <button :disabled="busy || running" @click="run(() => ServiceStart())">
-        {{ t('service.start') }}
+        <Icon name="play" :size="16" />{{ t('service.start') }}
       </button>
       <button :disabled="busy || !running" @click="run(() => ServiceStop())">
-        {{ t('service.stop') }}
+        <Icon name="stop" :size="16" />{{ t('service.stop') }}
       </button>
       <button :disabled="busy" @click="run(() => ServiceForceStop())">
-        {{ t('service.forceStop') }}
+        <Icon name="zap" :size="16" />{{ t('service.forceStop') }}
       </button>
       <button :disabled="busy" @click="refresh">
-        {{ t('service.refresh') }}
+        <Icon name="refresh" :size="16" />{{ t('service.refresh') }}
       </button>
     </div>
 

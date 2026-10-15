@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import Icon from './Icon.vue'
 import {
   GetSettings,
   SetAutoStart,
@@ -70,7 +71,9 @@ function onNotify(kind: string, e: Event) {
     </label>
 
     <div class="actions">
-      <button @click="NotifyEvaluate">{{ t('notify.test') }}</button>
+      <button @click="NotifyEvaluate">
+        <Icon name="bell" :size="16" />{{ t('notify.test') }}
+      </button>
     </div>
   </section>
 </template>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import Icon from './Icon.vue'
 import {
   WebAccessURLs,
   WebAccessUsername,
@@ -69,9 +70,15 @@ async function changePassword() {
 
     <h3>{{ t('web.mode') }}</h3>
     <div class="actions">
-      <button :disabled="busy" @click="applyMode('local')">{{ t('web.local') }}</button>
-      <button :disabled="busy" @click="applyMode('network')">{{ t('web.network') }}</button>
-      <button :disabled="busy" @click="applyMode('remote')">{{ t('web.remote') }}</button>
+      <button :disabled="busy" @click="applyMode('local')">
+        <Icon name="server" :size="16" />{{ t('web.local') }}
+      </button>
+      <button :disabled="busy" @click="applyMode('network')">
+        <Icon name="globe" :size="16" />{{ t('web.network') }}
+      </button>
+      <button :disabled="busy" @click="applyMode('remote')">
+        <Icon name="cloud" :size="16" />{{ t('web.remote') }}
+      </button>
     </div>
 
     <h3>{{ t('web.urls') }}</h3>
@@ -84,8 +91,13 @@ async function changePassword() {
     <p class="muted">
       {{ username }} ·
       <code>{{ showPassword ? password : '••••••' }}</code>
-      <button class="mini" @click="showPassword = !showPassword">
-        {{ showPassword ? t('web.hide') : t('web.show') }}
+      <button
+        type="button"
+        class="icon-btn"
+        :aria-label="showPassword ? t('web.hide') : t('web.show')"
+        @click="showPassword = !showPassword"
+      >
+        <Icon :name="showPassword ? 'eyeOff' : 'eye'" :size="16" />
       </button>
     </p>
 
@@ -96,7 +108,9 @@ async function changePassword() {
         :placeholder="t('web.newPassword')"
         :aria-label="t('web.newPassword')"
       />
-      <button :disabled="busy || !newPw" @click="changePassword">{{ t('web.save') }}</button>
+      <button :disabled="busy || !newPw" @click="changePassword">
+        <Icon name="check" :size="16" />{{ t('web.save') }}
+      </button>
     </div>
     <p v-if="saved" class="ok-msg">{{ t('web.saved') }}</p>
     <p v-if="error" class="error">{{ error }}</p>

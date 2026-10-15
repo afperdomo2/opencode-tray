@@ -20,11 +20,14 @@ cd frontend && pnpm build  # type-check (vue-tsc) + build del frontend
 
 ## Funcionalidad
 
+- **Resumen**: vista de inicio (overview) que centraliza de un vistazo el consumo, los MCP/config (JSON en acordeón) y el estado del servicio.
 - **Servicio**: estado (detenido/corriendo), iniciar / detener / **forzar detención** (workaround del bug de `opencode service stop`) / refrescar.
 - **Consumo**: barras del consumo de OpenCode Go (ventanas `rolling` / `weekly` / `monthly`) con estado ok / warn / crítico.
 - **Acceso web**: modos local / red (por IP) / remoto (túnel); usuario (`opencode`) y contraseña (enmascarada) con cambio de contraseña.
-- **Config**: visor de servidores MCP y del JSON de configuración global (secretos enmascarados) + abrir en editor externo.
+- **Config**: visor de servidores MCP y del JSON de configuración global (secretos enmascarados, en acordeón) + abrir en editor externo.
 - **Ajustes**: auto-inicio con Windows, idioma (es/en) y toggles de notificaciones.
+
+La UI usa iconos SVG (sin emoji), un control segmentado de idioma (ES|EN) y cards con profundidad (design system).
 
 > **Notificaciones**: la **lógica** de alertas (ritmo de consumo, agotamiento por umbral, servicio detenido inesperadamente) está implementada y probada, pero el **envío de toasts está deshabilitado en runtime** — el mecanismo de toast de Wails (go-toast) entraba en conflicto con el bucle de la bandeja y la dejaba muda. Detalle y cómo reactivarlo en [`specs/SPEC-notifications.md`](specs/SPEC-notifications.md).
 

@@ -33,7 +33,7 @@ func main() {
 		Width:            380,
 		Height:           520,
 		AssetServer:      &assetserver.Options{Assets: assets},
-		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
+		BackgroundColour: &options.RGBA{R: 15, G: 23, B: 42, A: 1},
 		// Cerrar la ventana la minimiza al tray; no sale de la app.
 		HideWindowOnClose: true,
 		// Arranca oculto: solo se ve el icono de bandeja.

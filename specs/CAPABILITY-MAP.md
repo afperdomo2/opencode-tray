@@ -12,6 +12,7 @@
 | `usage` | Consultar y mostrar el consumo de OpenCode Go (ventanas `rolling` / `weekly` / `monthly`) y resolución del token | `shell` |
 | `config-viewer` | Ver MCP servers, skills, agents y el JSON de configuración global (solo lectura + abrir en editor externo) | `shell` |
 | `notifications` | Notificaciones nativas (toast) de **dos tipos**: (A) ritmo de consumo vs. ritmo objetivo y (B) agotamiento por umbral | `shell`, `usage`, `service-control` |
+| `resumen` | **Vista de overview (landing)** del panel: dashboard compacto (consumo → MCP/config → servicio) + ajustes de UI/UX del panel (iconos, cabecera, idioma, acordeón, profundidad). **Frontend, sin paquete Go.** | `shell`, `service-control`, `usage`, `config-viewer` |
 
 ## Orden de construcción
 
@@ -20,9 +21,10 @@ shell  →  service-control  →  ┬─ web-access
                               ├─ usage
                               └─ config-viewer
                                             →  notifications
+                                            →  resumen (frontend)
 ```
 
-`web-access`, `usage` y `config-viewer` son **independientes entre sí** (paralelos). `notifications` va al final (reacciona a eventos de `usage` y `service-control`).
+`web-access`, `usage` y `config-viewer` son **independientes entre sí** (paralelos). `notifications` y `resumen` van al final (`notifications` reacciona a `usage`/`service-control`; `resumen` **compone** `usage` + `config-viewer` + `service-control` en la UI).
 
 ## Contratos en los límites
 

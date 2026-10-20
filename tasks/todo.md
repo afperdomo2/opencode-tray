@@ -541,3 +541,33 @@
   - Acceptance: evitar que el tray vuelva a registrarse dentro de `startup`.
   - Verify: revisión de documentación + build.
   - Files: `internal/shell/tray.go`, `AGENTS.md`, `specs/SPEC-shell.md`, `tasks/plan.md`, `tasks/todo.md`.
+
+---
+
+## Fase 17 — dashboard de widgets en Resumen
+
+> Spec: `SPEC-resumen.md` (Iteración 2). Sin dependencias nuevas.
+
+- [x] **Task: Shell de widget y layout bento**
+  - **Hecho:** `ResumenWidget.vue` con cabecera, icono, tono, chevron y clic/teclado; grid de 2 columnas (consumo y MCP a todo el ancho).
+  - Acceptance: 4 widgets con jerarquía visual y adaptación a una columna en ventanas estrechas.
+  - Verify: `resumen.spec.ts` + captura del flyout.
+  - Files: `frontend/src/components/ResumenWidget.vue`, `frontend/src/components/Resumen.vue`, `frontend/src/style.css`.
+
+- [x] **Task: Widgets de consumo, servicio, acceso y MCP**
+  - **Hecho:** consumo con las tres barras actuales; servicio con tinte verde/neutro; acceso con icono y color por modo + chip Internet; MCP con chips/dots sin texto de estado.
+  - Acceptance: información escaneable, color solo como refuerzo y URL de servicio sin esquema para que quepa.
+  - Verify: tests de severidad, modo remoto, chips MCP y skeletons independientes.
+  - Files: `frontend/src/components/Resumen{Consumo,Servicio,Acceso,Mcp}.vue`, i18n es/en.
+
+- [x] **Task: Navegación por clic/teclado**
+  - **Hecho:** Servicio → Servicio, Acceso → Acceso web, MCP → Servicio; `role="link"`, Enter/Space, foco visible y hover.
+  - Acceptance: los tres widgets navegables funcionan con ratón y teclado; Consumo no navega.
+  - Verify: `resumen.spec.ts` (click y keydown).
+  - Files: `ResumenWidget.vue`, `Resumen.vue`, tests.
+
+- [x] **Task: Documentar y validar**
+  - **Hecho:** README, SPEC-resumen, CAPABILITY-MAP, plan y todo sincronizados; `pnpm test` (60 tests), `pnpm build`, `go test ./...` y `wails build`.
+  - Acceptance: documentación y build de producción coherentes.
+  - Verify: suite completa + captura visual.
+  - Files: `README.md`, `specs/SPEC-resumen.md`, `specs/CAPABILITY-MAP.md`, `tasks/plan.md`, `tasks/todo.md`.

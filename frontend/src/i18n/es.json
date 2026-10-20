@@ -60,6 +60,20 @@
     "errorParse": "La respuesta de consumo no tiene el formato esperado.",
     "errorHttp": "OpenCode devolvió una respuesta inesperada."
   },
+  "resumen": {
+    "accessTitle": "Acceso",
+    "openService": "Abrir Servicio",
+    "openAccess": "Abrir Acceso web",
+    "openMcp": "Abrir MCP en Servicio",
+    "noUrl": "Sin URL",
+    "accessLocal": "Solo esta PC",
+    "accessLan": "{n} direcciones LAN",
+    "accessRemote": "Túnel OpenTunnel activo",
+    "accessStopped": "Servicio detenido",
+    "internet": "Internet",
+    "mcpConnected": "{name}: conectado",
+    "mcpDisconnected": "{name}: desconectado"
+  },
   "web": {
     "mode": "Modo de acceso",
     "local": "Local",

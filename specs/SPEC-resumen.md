@@ -94,3 +94,79 @@ frontend/src/
 2. **Iconos SVG inline**, set outline (inspirado en Phosphor/Lucide). Sin dependencia nueva.
 3. **Orden del Resumen:** Consumo → MCP/Config → Servicio.
 4. Esta spec cubre además **ajustes de UI/UX transversales** del panel (cabecera, idioma, acordeón, profundidad), no solo la vista Resumen.
+
+---
+
+# Iteración 2 — Dashboard de widgets (bento)
+
+> Traza a `resumen` + `ui-ux`. Solo afecta a la vista Resumen y componentes nuevos.
+
+## Objective
+
+Que el inicio se sienta como un panel de widgets de móvil: información escaneable, jerarquía clara y widgets navegables, sin rehacer las vistas detalladas.
+
+## Layout
+
+- Grid de 2 columnas a 380 px de ancho (ventana real del flyout).
+- **Consumo** ocupa las 2 columnas.
+- **Servicio** y **Acceso** comparten fila.
+- **MCP** ocupa las 2 columnas.
+- A ≤ 360 px, una sola columna.
+- Cada widget conserva su propio skeleton y error.
+
+## Widgets
+
+1. **Consumo**
+   - Se mantienen las **tres barras actuales** (5 h, semanal, mensual) y sus colores de severidad.
+   - Sin gauge nuevo.
+   - Se conserva el CTA de token y el aviso de actualización.
+
+2. **Servicio**
+   - Estado `Corriendo/Detenido` con texto + punto (nunca solo color).
+   - Tinte verde muy suave y borde verde cuando corre; fondo neutro y punto rojo cuando está detenido.
+   - URL sin esquema (`127.0.0.1:45278`) para que quepa; `title` con la URL completa.
+
+3. **Acceso web**
+   - Icono y color por modo, igual que los botones de la pestaña:
+     - Local → `server` + verde.
+     - Red → `globe` + ámbar.
+     - Remoto → `cloud` + naranja.
+   - Fondo neutro; el color vive en el icono y el borde.
+   - Chip `Internet` solo en remoto.
+   - Descripción: `Solo esta PC`, `N direcciones LAN` o `Túnel OpenTunnel activo`.
+   - Si el servicio está detenido, se indica en texto.
+
+4. **MCP**
+   - Chips con punto verde/rojo + nombre.
+   - Sin texto `connected/disconnected` por item.
+   - Sin texto de estado por item ni contador en la cabecera.
+   - `title`/`aria-label` en cada punto para accesibilidad.
+
+## Navegación
+
+- Servicio → `servicio`.
+- Acceso → `accesoWeb`.
+- MCP → `servicio` (donde vive la lista MCP).
+- Consumo **no** es clicable porque contiene sus propios CTAs.
+- Widgets clicables: `role="link"`, `tabindex="0"`, Enter/Space, hover/focus visibles y chevron.
+
+## Datos
+
+- `ServiceStatus()`, `ConfigListMCP()` y `WebAccessState()` vía `useQuery` con `staleTime` de 60 s.
+- `useUsageQuery()` para Consumo.
+- No se modifican `Servicio.vue`, `AccesoWeb.vue`, `Ajustes.vue` ni `Icon.vue`.
+
+## Testing Strategy
+
+- Vitest: 4 widgets, estado/URL, modo remoto + chip Internet, chips MCP sin texto de estado, clic y Enter, skeletons independientes, barras y severidad, caché y token.
+- Manual: revisar a 380 px, hover/foco, clic en cada widget y navegación.
+- Build: `pnpm test`, `pnpm build`, `go test ./...`, `wails build`.
+
+## Success Criteria
+
+- [ ] El Resumen muestra 4 widgets con la jerarquía acordada.
+- [ ] Consumo conserva las tres barras.
+- [ ] Servicio y Acceso se leen de un vistazo; el color no es el único indicador.
+- [ ] MCP no repite el estado textual por item.
+- [ ] Los widgets navegables funcionan con ratón y teclado.
+- [ ] Tests y build en verde.

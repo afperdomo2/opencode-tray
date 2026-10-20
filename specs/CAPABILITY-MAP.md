@@ -12,7 +12,7 @@
 | `usage` | Consultar y mostrar el consumo de OpenCode Go (ventanas `rolling` / `weekly` / `monthly`), resolver el token vigente (OpenCode v2 export → `auth.json` legado → manual DPAPI), releerlo bajo demanda y **humanizar el reinicio para el tooltip** | `shell` |
 | `config-viewer` | Ver MCP servers, skills, agents y el JSON de configuración global (solo lectura + abrir en editor externo) | `shell` |
 | `notifications` | Notificaciones nativas (toast) de **dos tipos**: (A) ritmo de consumo vs. ritmo objetivo y (B) agotamiento por umbral | `shell`, `usage`, `service-control` |
-| `resumen` | **Vista de overview (landing)** del panel: dashboard compacto (consumo → MCP/config → servicio) + ajustes de UI/UX del panel (iconos, cabecera, idioma, acordeón, profundidad). **Frontend, sin paquete Go.** | `shell`, `service-control`, `usage`, `config-viewer` |
+| `resumen` | **Vista de overview (landing)** del panel: dashboard de **widgets (bento)** clicables (consumo, servicio, acceso web, MCP) + ajustes de UI/UX del panel (iconos, cabecera, idioma, acordeón, profundidad). **Frontend, sin paquete Go.** | `shell`, `service-control`, `usage`, `config-viewer`, `web-access` |
 | `ui-ux` | **Refinamientos de UI/UX (iteración 2)**: quitar el menú Consumo, mover el idioma a Ajustes, botones de servicio compactos en Resumen, JSON de config en modal, switches estilizados en Ajustes. **Frontend, sin paquete Go.** | `shell`, `resumen`, `config-viewer` |
 
 ## Orden de construcción

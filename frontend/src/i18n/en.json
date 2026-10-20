@@ -60,6 +60,20 @@
     "errorParse": "The usage response has an unexpected format.",
     "errorHttp": "OpenCode returned an unexpected response."
   },
+  "resumen": {
+    "accessTitle": "Access",
+    "openService": "Open Service",
+    "openAccess": "Open Web access",
+    "openMcp": "Open MCP in Service",
+    "noUrl": "No URL",
+    "accessLocal": "This PC only",
+    "accessLan": "{n} LAN addresses",
+    "accessRemote": "OpenTunnel active",
+    "accessStopped": "Service stopped",
+    "internet": "Internet",
+    "mcpConnected": "{name}: connected",
+    "mcpDisconnected": "{name}: disconnected"
+  },
   "web": {
     "mode": "Access mode",
     "local": "Local",

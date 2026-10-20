@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   status: vi.fn(),
   usage: vi.fn(),
   mcp: vi.fn(),
+  access: vi.fn(),
   tokenStatus: vi.fn(),
   reload: vi.fn(),
   setToken: vi.fn(),
@@ -26,6 +27,7 @@ vi.mock('../../wailsjs/go/main/App', () => ({
   ServiceStatus: mocks.status,
   UsageFetch: mocks.usage,
   ConfigListMCP: mocks.mcp,
+  WebAccessState: mocks.access,
   UsageTokenStatus: mocks.tokenStatus,
   UsageReloadToken: mocks.reload,
   UsageSetManualToken: mocks.setToken,
@@ -40,15 +42,20 @@ const makeI18n = () =>
   createI18n({ legacy: false, locale: 'es', fallbackLocale: 'en', messages: { es, en } })
 
 const usage = (r: number, w: number, m: number) => ({
-  rolling: { percent: r, resetsAt: '' },
-  weekly: { percent: w, resetsAt: '' },
-  monthly: { percent: m, resetsAt: '' },
+  rolling: { percent: r, resetsAt: '', hasReset: false },
+  weekly: { percent: w, resetsAt: '', hasReset: false },
+  monthly: { percent: m, resetsAt: '', hasReset: false },
 })
 
 function setDefaults() {
   mocks.status.mockResolvedValue({ running: true, url: 'http://0.0.0.0:49374' })
   mocks.usage.mockResolvedValue(usage(10, 50, 20))
   mocks.mcp.mockResolvedValue([{ name: 'context7', status: 'connected' }])
+  mocks.access.mockResolvedValue({
+    mode: 'local',
+    running: true,
+    urls: [{ url: 'http://127.0.0.1:49374', kind: 'local' }],
+  })
   mocks.tokenStatus.mockResolvedValue({ configured: true, source: 'opencode-export' })
   mocks.reload.mockResolvedValue({ configured: true, source: 'opencode-export' })
   mocks.setToken.mockResolvedValue(undefined)
@@ -72,22 +79,76 @@ beforeEach(() => {
 })
 
 describe('Resumen', () => {
-  it('muestra los widgets de Consumo y Servicio (con MCP)', async () => {
+  it('muestra los cuatro widgets del dashboard', async () => {
     const w = await mountResumen()
-    const text = w.text()
-    expect(text).toContain('Consumo')
-    expect(text).toContain('Servicio')
-    expect(text).toContain('context7')
-    expect(text).toContain('http://0.0.0.0:49374')
-    expect(w.find('.dashboard').exists()).toBe(true)
-    expect(w.findAll('.dashboard > .card').length).toBe(2)
+
+    expect(w.findAll('.widget-grid .widget').length).toBe(4)
+    expect(w.find('.widget-consumo').findAll('.bar-fill').length).toBe(3)
+    expect(w.find('.widget-servicio').text()).toContain('Corriendo')
+    expect(w.find('.widget-acceso').text()).toContain('Local')
+    expect(w.find('.widget-mcp').text()).toContain('context7')
   })
 
-  it('muestra estado y URI en la misma fila', async () => {
+  it('muestra estado y URL en el widget de Servicio', async () => {
     const w = await mountResumen()
-    const row = w.findAll('.dashboard > .card')[1].find('.status-row')
-    expect(row.find('.url').text()).toBe('http://0.0.0.0:49374')
-    expect(w.find('p.url').exists()).toBe(false)
+    const service = w.find('.widget-servicio')
+
+    expect(service.find('.widget-state').text()).toContain('Corriendo')
+    expect(service.find('.widget-url').text()).toBe('0.0.0.0:49374')
+    expect(service.find('.widget-url').attributes('title')).toBe('http://0.0.0.0:49374')
+  })
+
+  it('muestra el modo de acceso y el aviso de Internet en remoto', async () => {
+    mocks.access.mockResolvedValue({
+      mode: 'remote',
+      running: true,
+      urls: [{ url: 'https://abc.opentunnel.xyz', kind: 'remote' }],
+    })
+
+    const w = await mountResumen()
+    const access = w.find('.widget-acceso')
+
+    expect(access.text()).toContain('Remoto')
+    expect(access.find('.access-chip').text()).toContain('Internet')
+    expect(access.classes()).toContain('tone-remote')
+  })
+
+  it('muestra los chips de MCP sin el texto de estado por item', async () => {
+    mocks.mcp.mockResolvedValue([
+      { name: 'context7', status: 'connected' },
+      { name: 'github', status: 'error' },
+    ])
+
+    const w = await mountResumen()
+    const mcp = w.find('.widget-mcp')
+
+    expect(mcp.findAll('.mcp-chip').length).toBe(2)
+    expect(mcp.text()).not.toContain('connected')
+    expect(mcp.text()).not.toContain('error')
+    expect(mcp.findAll('.dot')[0].attributes('aria-label')).toBe('context7: conectado')
+  })
+
+  it('navega al hacer clic o pulsar Enter en Servicio', async () => {
+    const w = await mountResumen()
+    const service = w.find('.widget-servicio')
+
+    await service.trigger('click')
+    await service.trigger('keydown', { key: 'Enter' })
+
+    const emitted = w.emitted('navigate')
+    expect(emitted?.[0]).toEqual(['servicio'])
+    expect(emitted?.[1]).toEqual(['servicio'])
+  })
+
+  it('navega a Acceso web y a Servicio desde MCP', async () => {
+    const w = await mountResumen()
+
+    await w.find('.widget-acceso').trigger('click')
+    await w.find('.widget-mcp').trigger('click')
+
+    const emitted = w.emitted('navigate')
+    expect(emitted?.[0]).toEqual(['accesoWeb'])
+    expect(emitted?.[1]).toEqual(['servicio'])
   })
 
   it('renderiza consumo aunque el servicio siga cargando (skeleton independiente)', async () => {
@@ -103,15 +164,23 @@ describe('Resumen', () => {
     const w = mount(Resumen, { global: { plugins: [makeI18n()] } })
     await flushPromises()
 
-    const cards = w.findAll('.card')
-    expect(cards[0].findAll('.bar-fill').length).toBe(3)
-    expect(cards[1].find('.skeleton').exists()).toBe(true)
+    expect(w.find('.widget-consumo').findAll('.bar-fill').length).toBe(3)
+    expect(w.find('.widget-servicio').find('.skeleton').exists()).toBe(true)
 
     resolveStatus({ running: true, url: 'http://127.0.0.1:49374' })
     await flushPromises()
 
-    expect(w.findAll('.card')[1].find('.skeleton').exists()).toBe(false)
-    expect(w.text()).toContain('Corriendo')
+    expect(w.find('.widget-servicio').find('.skeleton').exists()).toBe(false)
+    expect(w.find('.widget-servicio').text()).toContain('Corriendo')
+  })
+
+  it('muestra skeleton independiente en Acceso mientras carga', async () => {
+    mocks.access.mockReturnValue(new Promise(() => {}))
+
+    const w = await mountResumen()
+
+    expect(w.find('.widget-acceso').find('.skeleton').exists()).toBe(true)
+    expect(w.find('.widget-servicio').find('.skeleton').exists()).toBe(false)
   })
 
   it('es solo resumen: sin error no muestra botones de acción', async () => {
@@ -123,15 +192,15 @@ describe('Resumen', () => {
   it('colorea el consumo de forma graduada (crítico >= 98)', async () => {
     mocks.usage.mockResolvedValue(usage(0, 40, 99))
     const w = await mountResumen()
-    expect(w.find('.bar-fill.crit').exists()).toBe(true)
-    expect(w.find('.bar-pct.crit').exists()).toBe(true)
+    expect(w.find('.widget-consumo .bar-fill.crit').exists()).toBe(true)
+    expect(w.find('.widget-consumo .bar-pct.crit').exists()).toBe(true)
   })
 
   it('usa ámbar/naranja según proximidad al límite', async () => {
     mocks.usage.mockResolvedValue(usage(72, 90, 10))
     const w = await mountResumen()
-    expect(w.find('.bar-fill.warn').exists()).toBe(true) // 72% -> ámbar
-    expect(w.find('.bar-fill.high').exists()).toBe(true) // 90% -> naranja
+    expect(w.find('.widget-consumo .bar-fill.warn').exists()).toBe(true)
+    expect(w.find('.widget-consumo .bar-fill.high').exists()).toBe(true)
   })
 
   it('reutiliza el consumo cacheado al remontar (sin skeleton ni refetch)', async () => {

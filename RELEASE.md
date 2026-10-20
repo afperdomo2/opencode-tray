@@ -8,6 +8,7 @@ App de bandeja (tray) para Windows que controla el servicio de OpenCode, el acce
 - **Acceso web**: URLs reales desde `/api/info` con el puerto correcto (45278 en Windows), badges Local/LAN/Remoto y botones para **abrir en el navegador** y **copiar** con confirmación.
 - **Modos exclusivos**: al pasar a Local/Red se desactiva OpenTunnel; activar Remoto pide confirmación explícita porque expone el servidor a Internet.
 - **Skeleton** de 2 filas en la lista de URLs.
+- **Resumen como dashboard de widgets**: consumo con las tres barras, servicio y acceso web en tiles con estado visual, MCP en chips y widgets clicables (Servicio, Acceso y MCP) con teclado y foco visible.
 - **Instalador per-user con Inno Setup** (`scripts/build-installer.ps1`), con detección de WebView2 y aviso si falta `opencode` en PATH.
 - **Fix de build**: la generación de bindings ya no falla en silencio si la app está abierta (mutex de instancia única desactivado con `-tags bindings`).
 - **Fix crítico del tray**: el icono se registra en el hilo principal antes de `wails.Run`; el clic izquierdo abre/cierra el panel y el clic derecho vuelve a mostrar el menú (Mostrar panel / Salir).

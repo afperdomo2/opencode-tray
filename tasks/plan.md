@@ -46,6 +46,7 @@ shell
 | 14 | `shell` + `ui-ux` | **alto fijo y fila de servicio unificada**: el flyout mantiene 600 px en todas las pestañas; Resumen usa el mismo `status-row` que Servicio para estado+URI |
 | 15 | `shell` + `web-access` + `ui-ux` | **tooltip mensual humanizado** (barra + iconos + reinicio), **URLs reales con abrir/copiar**, modos exclusivos con apagado del remoto, skeleton de 2 filas e **instalador Inno Setup per-user** |
 | 16 | `shell` | **fix del tray**: registrar `energye/systray` en el hilo principal (`main`, antes de `wails.Run`) para que el clic izquierdo abra el panel y el clic derecho muestre el menú |
+| 17 | `resumen` + `ui-ux` | **dashboard de widgets**: consumo con las tres barras, servicio y acceso en tiles, MCP en chips, widgets clicables con teclado, tintes de estado suaves y layout bento |
 
 Las fases 3a/3b/3c se pueden hacer **en paralelo** (independientes entre sí).
 
@@ -81,6 +82,7 @@ Cada fase termina con su checkpoint antes de pasar a la siguiente:
 - **Fase 14**: mismo alto en todas las pestañas sin medir contenido, y estado+URI alineados en Resumen; tests y build en verde.
 - **Fase 15**: tooltip con barra/porcentaje/reinicio actualizado sin abrir el panel; URLs local/LAN/remota con abrir/copiar; remoto exclusivo con confirmación; skeleton de 2 filas; instalador per-user generado; `go test ./...`, `pnpm test`, `pnpm build` y `wails build` en verde.
 - **Fase 16**: clic izquierdo abre/cierra el panel, clic derecho abre el menú y "Salir" cierra la app; tray creado en el hilo principal; tests y build en verde.
+- **Fase 17**: Resumen con 4 widgets, barras de consumo intactas, servicio/acceso con estado visual accesible, MCP sin estado textual por item, navegación por clic/teclado; tests y build en verde.
 
 ## 6. Estrategia de testing (desde el inicio)
 

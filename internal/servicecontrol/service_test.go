@@ -62,6 +62,42 @@ func TestStatusStopped(t *testing.T) {
 	}
 }
 
+func TestStatusStoppedWithExitZero(t *testing.T) {
+	r := &mockRunner{responses: map[string]mockResult{
+		"service status": {stdout: "stopped\n"},
+	}}
+	s := NewWithRunner(r, nil)
+
+	st, err := s.Status()
+	if err != nil {
+		t.Fatalf("Status() error: %v", err)
+	}
+	if st.Running {
+		t.Error("Running = true, want false")
+	}
+	if st.URL != "" {
+		t.Errorf("URL = %q, want empty", st.URL)
+	}
+}
+
+func TestStatusRunningWithoutURL(t *testing.T) {
+	r := &mockRunner{responses: map[string]mockResult{
+		"service status": {stdout: "running\n"},
+	}}
+	s := NewWithRunner(r, nil)
+
+	st, err := s.Status()
+	if err != nil {
+		t.Fatalf("Status() error: %v", err)
+	}
+	if !st.Running {
+		t.Error("Running = false, want true")
+	}
+	if st.URL != "" {
+		t.Errorf("URL = %q, want empty", st.URL)
+	}
+}
+
 func TestInfoParsesPIDVersionURLs(t *testing.T) {
 	r := &mockRunner{responses: map[string]mockResult{
 		"api get /api/info": {stdout: `{"version":"2.0.29","pid":3692,"urls":["http://127.0.0.1:49374"]}`},

@@ -15,6 +15,8 @@ export function ConfigOpenInEditor():Promise<void>;
 
 export function GetSettings():Promise<shell.Settings>;
 
+export function HideWindow():Promise<void>;
+
 export function NotifyEvaluate():Promise<void>;
 
 export function NotifySetEnabled(arg1:string,arg2:boolean):Promise<void>;
@@ -31,7 +33,11 @@ export function ServiceStop():Promise<void>;
 
 export function SetAutoStart(arg1:boolean):Promise<void>;
 
+export function SetFlyoutHeight(arg1:number):Promise<void>;
+
 export function SetLanguage(arg1:string):Promise<void>;
+
+export function SetRefreshMin(arg1:number):Promise<void>;
 
 export function ToggleWindow():Promise<void>;
 
@@ -39,7 +45,11 @@ export function UsageClearManualToken():Promise<void>;
 
 export function UsageFetch():Promise<usage.Usage>;
 
+export function UsageReloadToken():Promise<usage.TokenStatus>;
+
 export function UsageSetManualToken(arg1:string):Promise<void>;
+
+export function UsageTokenStatus():Promise<usage.TokenStatus>;
 
 export function WebAccessApplyMode(arg1:string):Promise<void>;
 
@@ -50,3 +60,5 @@ export function WebAccessCurrentPassword():Promise<string>;
 export function WebAccessURLs():Promise<Array<string>>;
 
 export function WebAccessUsername():Promise<string>;
+
+export function WindowBlurred():Promise<void>;

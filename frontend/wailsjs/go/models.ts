@@ -42,6 +42,7 @@ export namespace shell {
 	    language: string;
 	    autoStart: boolean;
 	    refreshMin: number;
+	    usageToken?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Settings(source);
@@ -52,6 +53,7 @@ export namespace shell {
 	        this.language = source["language"];
 	        this.autoStart = source["autoStart"];
 	        this.refreshMin = source["refreshMin"];
+	        this.usageToken = source["usageToken"];
 	    }
 	}
 
@@ -59,6 +61,22 @@ export namespace shell {
 
 export namespace usage {
 	
+	export class TokenStatus {
+	    configured: boolean;
+	    source: string;
+	    provider?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new TokenStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.configured = source["configured"];
+	        this.source = source["source"];
+	        this.provider = source["provider"];
+	    }
+	}
 	export class Window {
 	    percent: number;
 	    // Go type: time

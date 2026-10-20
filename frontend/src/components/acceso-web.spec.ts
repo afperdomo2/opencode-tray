@@ -37,6 +37,7 @@ describe('AccesoWeb', () => {
     expect(w.findAll('.panel-grid > .card').length).toBe(2)
     expect(w.find('.pw-change button.btn').exists()).toBe(true)
     expect(w.text()).toContain('http://127.0.0.1:49374')
+    expect(w.find('.icon-btn').attributes('title')).toBe('Mostrar')
   })
 
   it('muestra skeleton de URLs mientras cargan', async () => {

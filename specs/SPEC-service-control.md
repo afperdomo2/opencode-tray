@@ -16,7 +16,7 @@ type Service struct { /* ... */ }
 func New() *Service
 
 // Estado
-func (s *Service) Status() (Status, error)          // running bool + info (version, pid)
+func (s *Service) Status() (Status, error)          // running bool + URL (solo si corre)
 func (s *Service) Info() (ServerInfo, error)        // JSON de /api/info
 
 // Ciclo de vida
@@ -51,6 +51,8 @@ opencode service set <key> <value>
 opencode service unset <key>
 opencode api get /api/info        # → { "pid": ..., ... }
 ```
+
+> `opencode service status` puede devolver exit 0 con stdout `stopped`. Ese caso significa **detenido**, no una URL. Solo un stdout con `http://`/`https://` se expone como `Status.URL`.
 
 ## Project Structure
 

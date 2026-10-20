@@ -46,6 +46,36 @@ describe('Servicio', () => {
     expect(w.findAll('.panel-grid > .card').length).toBe(2)
     expect(w.text()).toContain('Corriendo')
     expect(w.text()).toContain('context7')
+
+    const statusRow = w.find('.status-row')
+    expect(statusRow.find('.url').text()).toBe('http://127.0.0.1:49374')
+  })
+
+  it('usa etiquetas cortas y tooltips en las acciones', async () => {
+    const w = await mountServicio()
+
+    expect(w.findAll('.actions-grid.cols-2 .btn').length).toBe(4)
+    expect(w.findAll('.actions-grid.cols-3 .btn').length).toBe(3)
+
+    const buttons = w.findAll('.actions-grid .btn')
+    expect(buttons.map((b) => b.text())).toEqual([
+      'Iniciar',
+      'Detener',
+      'Forzar',
+      'Refrescar',
+      'Editor',
+      'Carpeta',
+      'JSON',
+    ])
+    expect(buttons.map((b) => b.attributes('title'))).toEqual([
+      'Iniciar servicio',
+      'Detener servicio',
+      'Forzar detención del servicio',
+      'Actualizar estado y configuración',
+      'Abrir en editor',
+      'Abrir carpeta',
+      'Ver configuración JSON',
+    ])
   })
 
   it('muestra skeleton mientras el estado del servicio carga', async () => {

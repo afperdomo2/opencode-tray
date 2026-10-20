@@ -1,16 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { GetSettings } from '../wailsjs/go/main/App'
+import { HideWindow, WindowBlurred } from '../wailsjs/go/main/App'
 import Icon from './components/Icon.vue'
 import Resumen from './components/Resumen.vue'
 import Servicio from './components/Servicio.vue'
 import AccesoWeb from './components/AccesoWeb.vue'
 import Ajustes from './components/Ajustes.vue'
+import { loadSettings, settings } from './lib/settings'
 
 const { t, locale } = useI18n()
 
 const active = ref('resumen')
+
 // Secciones (Servicio ya incluye la configuración; Resumen es el dashboard).
 const sections = [
   { id: 'resumen', icon: 'gauge' },
@@ -19,19 +21,43 @@ const sections = [
   { id: 'ajustes', icon: 'settings' },
 ]
 
-onMounted(async () => {
-  try {
-    const s = await GetSettings()
-    locale.value = s.language
-  } catch {
-    // Sin backend (tests): mantiene 'es' por defecto.
+// El alto lo fija el backend y no depende del contenido de cada pestaña.
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    void HideWindow().catch(() => {})
   }
+}
+
+function onBlur() {
+  void WindowBlurred().catch(() => {})
+}
+
+onMounted(async () => {
+  window.addEventListener('keydown', onKeydown)
+  window.addEventListener('blur', onBlur)
+
+  await loadSettings()
+  locale.value = settings.language
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown)
+  window.removeEventListener('blur', onBlur)
 })
 </script>
 
 <template>
   <div class="app">
-    <nav class="app-nav" aria-label="Secciones">
+    <main class="app-content">
+      <div class="app-content-inner">
+        <Resumen v-if="active === 'resumen'" @navigate="active = $event" />
+        <Servicio v-else-if="active === 'servicio'" />
+        <AccesoWeb v-else-if="active === 'accesoWeb'" />
+        <Ajustes v-else-if="active === 'ajustes'" />
+      </div>
+    </main>
+
+    <nav class="app-nav" :aria-label="t('nav.label')">
       <button
         v-for="s in sections"
         :key="s.id"
@@ -44,12 +70,5 @@ onMounted(async () => {
         <span>{{ t('nav.' + s.id) }}</span>
       </button>
     </nav>
-
-    <main class="app-content">
-      <Resumen v-if="active === 'resumen'" />
-      <Servicio v-else-if="active === 'servicio'" />
-      <AccesoWeb v-else-if="active === 'accesoWeb'" />
-      <Ajustes v-else-if="active === 'ajustes'" />
-    </main>
   </div>
 </template>

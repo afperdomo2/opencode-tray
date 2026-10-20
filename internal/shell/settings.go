@@ -10,9 +10,16 @@ import (
 
 // Settings es la configuración persistente de la aplicación (local, no de OpenCode).
 type Settings struct {
-	Language   string `json:"language"`   // "es" | "en"
-	AutoStart  bool   `json:"autoStart"`  // arrancar con Windows
-	RefreshMin int    `json:"refreshMin"` // intervalo de refresco (min)
+	Language   string `json:"language"`             // "es" | "en"
+	AutoStart  bool   `json:"autoStart"`            // arrancar con Windows
+	RefreshMin int    `json:"refreshMin"`           // intervalo de refresco (min)
+	UsageToken string `json:"usageToken,omitempty"` // blob DPAPI del token manual de OpenCode Go
+}
+
+// Public devuelve una copia sin secretos, apta para enviar al frontend.
+func (s Settings) Public() Settings {
+	s.UsageToken = ""
+	return s
 }
 
 // DefaultSettings devuelve los valores por defecto.

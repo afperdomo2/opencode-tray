@@ -39,6 +39,11 @@ shell
 | 7 | `ui-ux` | refinamientos: quitar menú Consumo, idioma a Ajustes, **botón `sm` estándar**, **unificar Servicio+Config**, JSON en modal, switches en Ajustes, **dashboard sin botones** |
 | 8 | `ui-ux` | **responsive**: CSS Grid/Flexbox + container queries, contenido centrado (max 1120 px), grids en Resumen/Servicio/Acceso web/Ajustes, ventana mínima 340×420, clase `.btn` estándar |
 | 9 | `ui-ux` | **skeletons**: carga independiente por widget (consumo/servicio/MCP/URLs/credenciales/ajustes), errores por card y `Skeleton.vue` accesible |
+| 10 | `usage` + `ui-ux` | **token y caché**: lectura OpenCode v2 (`auth export`) + `auth.json` (`opencode`/`opencode-go`) + manual DPAPI; reintento automático/botón; caché nativo de consumo con `staleTime`, dedupe y polling según `RefreshMin` |
+| 11 | `shell` + `ui-ux` | **flyout nativo**: ventana frameless fija anclada al icono (Win32, multi-monitor/taskbar/DPI), fuera de taskbar/Alt+Tab, alto según contenido, cierre por blur/Esc, nav inferior fija |
+| 12 | `shell` | **cierre estable + tooltip**: guarda de blur post-apertura con verificación de foreground, foco reforzado y tooltip nativo con consumo (`OpenCode · 5h · 7d · 30d`) |
+| 13 | `ui-ux` + `service-control` | **pestañas y acciones estables**: métricas fijas del nav, estado+URI juntos (descartando `stopped` como URL), etiquetas cortas en grids, tooltips nativos y scroll con espacio reservado |
+| 14 | `shell` + `ui-ux` | **alto fijo y fila de servicio unificada**: el flyout mantiene 600 px en todas las pestañas; Resumen usa el mismo `status-row` que Servicio para estado+URI |
 
 Las fases 3a/3b/3c se pueden hacer **en paralelo** (independientes entre sí).
 
@@ -52,6 +57,8 @@ Las fases 3a/3b/3c se pueden hacer **en paralelo** (independientes entre sí).
 | Leer la contraseña del servicio (puede estar oculta) | Bajo | Verificar `opencode service get password` vs leer `~/.config/opencode/service.json`; el contrato `Get("password")` no cambia. |
 | WebView2 ausente (Windows) | Bajo | Wails lo gestiona; documentar requisito (viene con Win10/11). |
 | Exponer secretos en UI/logs | Alto | Enmascarado centralizado (`configviewer/mask.go`), token nunca en claro, regla "Never" en specs. |
+| Token de OpenCode v2 en SQLite y `auth.json` desactualizado | Alto | `opencode auth export` bajo demanda + soporte de `opencode`/`opencode-go` en `auth.json`; reintento automático una vez y botón manual. |
+| `opencode auth export` lento (8–15 s) | Medio | Solo en reintento; caché en memoria, datos previos conservados y spinner "Leyendo token…". |
 
 ## 5. Checkpoints de verificación (entre fases)
 
@@ -65,6 +72,11 @@ Cada fase termina con su checkpoint antes de pasar a la siguiente:
 - **Fase 5**: `wails build` produce `.exe`; checklist de `ui-ux-pro-max` (contraste, foco, targets) aplicado.
 - **Fase 8**: sin scroll horizontal en 340–2560 px; contenido centrado; ventana mínima respetada; `pnpm build` + tests verdes.
 - **Fase 9**: cada widget async se pinta al resolver su propia carga; skeletons accesibles y sin saltos de layout; tests verdes.
+- **Fase 10**: token leído de `opencode auth export`/`auth.json`/manual DPAPI; `GetSettings` nunca expone el secreto; consumo cacheado sin skeleton al remontar; reintento único + CTAs; `go test ./...`, `pnpm test`, `pnpm build` y `wails build` en verde.
+- **Fase 11**: flyout anclado al icono, sin mover/redimensionar, fuera de taskbar/Alt+Tab, alto según contenido, cierre por blur/Esc; pruebas manuales en 4 posiciones de taskbar, multi-monitor y DPI 100/150/200 %.
+- **Fase 12**: un clic abre y mantiene el panel (sin cierre por blur transitorio); clic fuera/Esc/tray lo cierran; el tooltip del tray muestra consumo tras `UsageFetch`; `go test ./...`, `pnpm test`, `pnpm build` y `wails build` en verde.
+- **Fase 13**: pestañas sin movimiento, estado+URI juntos, botones cortos sin saltos, tooltips en botones icono y scroll sin reflujo; `pnpm test`, `pnpm build`, `go test ./...` y `wails build` en verde.
+- **Fase 14**: mismo alto en todas las pestañas sin medir contenido, y estado+URI alineados en Resumen; tests y build en verde.
 
 ## 6. Estrategia de testing (desde el inicio)
 

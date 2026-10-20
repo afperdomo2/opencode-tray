@@ -3,26 +3,34 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Icon from './Icon.vue'
 import Skeleton from './Skeleton.vue'
-import { ServiceStatus, UsageFetch, ConfigListMCP } from '../../wailsjs/go/main/App'
+import { ServiceStatus, ConfigListMCP } from '../../wailsjs/go/main/App'
+import { useUsageQuery, usageErrorKey, isTokenError } from '../lib/usage'
 
-// Dashboard (landing): solo resúmenes, sin acciones (las acciones están en cada menú).
-// Widgets: Consumo · Servicio + Config. Cada widget carga por separado para que
-// no haya que esperar al más lento (consumo = REST; servicio = OpenCode).
+// Dashboard (landing): resúmenes. El consumo usa caché compartida; si falta el
+// token, muestra un único CTA para releerlo desde OpenCode (excepción aprobada).
 const { t } = useI18n()
+const emit = defineEmits<{ (e: 'navigate', section: string): void }>()
 
 const running = ref(false)
 const url = ref('')
-const rolling = ref(0)
-const weekly = ref(0)
-const monthly = ref(0)
 const mcp = ref<{ name: string; status: string }[]>([])
 
-const loadingUsage = ref(true)
+const usage = useUsageQuery()
+const tokenBusy = usage.tokenBusy
+
 const loadingService = ref(true)
 const loadingMcp = ref(true)
-const errorUsage = ref('')
 const errorService = ref('')
 const errorMcp = ref('')
+
+const usageError = computed(() => usage.error.value)
+const usageErrorLabel = computed(() =>
+  usageError.value ? usageErrorKey(usageError.value) : '',
+)
+const showTokenRetry = computed(() => isTokenError(usageError.value))
+const usingManualToken = computed(() => usage.tokenStatus.value?.source === 'manual')
+const hasUsageData = computed(() => usage.data.value !== undefined)
+const isUpdating = computed(() => usage.isFetching.value && !usageError.value)
 
 // Severidad graduada por proximidad al límite (ver SPEC-ui-ux).
 function sev(pct: number): string {
@@ -32,25 +40,17 @@ function sev(pct: number): string {
   return 'ok'
 }
 
-const windows = computed(() => [
-  { key: 'rolling', label: t('usage.rolling'), pct: rolling.value },
-  { key: 'weekly', label: t('usage.weekly'), pct: weekly.value },
-  { key: 'monthly', label: t('usage.monthly'), pct: monthly.value },
-])
+const windows = computed(() => {
+  const u = usage.data.value
+  return [
+    { key: 'rolling', label: t('usage.rolling'), pct: u?.rolling.percent ?? 0 },
+    { key: 'weekly', label: t('usage.weekly'), pct: u?.weekly.percent ?? 0 },
+    { key: 'monthly', label: t('usage.monthly'), pct: u?.monthly.percent ?? 0 },
+  ]
+})
 
-async function loadUsage() {
-  loadingUsage.value = true
-  errorUsage.value = ''
-  try {
-    const usage = await UsageFetch()
-    rolling.value = usage.rolling.percent
-    weekly.value = usage.weekly.percent
-    monthly.value = usage.monthly.percent
-  } catch (e) {
-    errorUsage.value = String(e)
-  } finally {
-    loadingUsage.value = false
-  }
+function retryToken() {
+  void usage.reloadToken()
 }
 
 async function loadService() {
@@ -80,7 +80,6 @@ async function loadMcp() {
 }
 
 onMounted(() => {
-  void loadUsage()
   void loadService()
   void loadMcp()
 })
@@ -98,7 +97,7 @@ onMounted(() => {
           <h3>{{ t('nav.consumo') }}</h3>
         </div>
 
-        <div v-if="loadingUsage" class="skeleton-stack" role="status">
+        <div v-if="usage.isInitialLoading.value" class="skeleton-stack" role="status">
           <span class="sr-only">{{ t('common.loading') }}</span>
           <div v-for="i in 3" :key="i" class="skeleton-row">
             <Skeleton width="64px" height="12px" />
@@ -106,18 +105,43 @@ onMounted(() => {
             <Skeleton width="36px" height="12px" />
           </div>
         </div>
-        <p v-else-if="errorUsage" class="error">{{ errorUsage }}</p>
         <template v-else>
-          <div v-for="w in windows" :key="w.key" class="bar-row">
-            <span class="bar-label">{{ w.label }}</span>
-            <div class="bar-track">
-              <div
-                class="bar-fill"
-                :class="sev(w.pct)"
-                :style="{ width: Math.min(100, w.pct) + '%' }"
-              ></div>
+          <template v-if="hasUsageData">
+            <div v-for="w in windows" :key="w.key" class="bar-row">
+              <span class="bar-label">{{ w.label }}</span>
+              <div class="bar-track">
+                <div
+                  class="bar-fill"
+                  :class="sev(w.pct)"
+                  :style="{ width: Math.min(100, w.pct) + '%' }"
+                ></div>
+              </div>
+              <span class="bar-pct" :class="sev(w.pct)">{{ Math.round(w.pct) }}%</span>
             </div>
-            <span class="bar-pct" :class="sev(w.pct)">{{ Math.round(w.pct) }}%</span>
+            <p v-if="isUpdating" class="usage-status" role="status">{{ t('usage.updating') }}</p>
+          </template>
+
+          <div v-if="usageError" class="error-block">
+            <p class="error" role="alert">
+              {{ hasUsageData ? t('usage.staleError') : t(usageErrorLabel) }}
+            </p>
+            <div v-if="showTokenRetry" class="error-ctas">
+              <button
+                type="button"
+                class="btn token-retry"
+                :disabled="tokenBusy"
+                :aria-busy="tokenBusy"
+                @click="retryToken"
+              >
+                <Icon name="refresh" :size="14" />
+                {{ tokenBusy ? t('usage.reloading') : t('usage.reloadFromOpenCode') }}
+              </button>
+              <button type="button" class="btn" @click="emit('navigate', 'ajustes')">
+                <Icon name="key" :size="14" />
+                {{ t('usage.configureKey') }}
+              </button>
+            </div>
+            <p v-if="usingManualToken" class="muted">{{ t('usage.manualHint') }}</p>
           </div>
         </template>
       </div>
@@ -139,8 +163,8 @@ onMounted(() => {
           <div class="status-row">
             <span class="dot" :class="running ? 'on' : 'off'" aria-hidden="true"></span>
             <span>{{ running ? t('service.running') : t('service.stopped') }}</span>
+            <span v-if="url" class="url" :title="url">{{ url }}</span>
           </div>
-          <p v-if="url" class="url">{{ url }}</p>
         </template>
 
         <h3>{{ t('config.mcp') }}</h3>

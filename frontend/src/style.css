@@ -167,30 +167,37 @@ h3 {
   color: var(--on-accent);
 }
 
+/* Footer fijo del flyout: 4 pestañas, icono arriba y texto abajo. */
 .app-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2px;
   width: 100%;
-  max-width: var(--content-max);
-  margin-inline: auto;
-  padding: var(--space-sm) var(--content-gutter);
-  border-bottom: 1px solid var(--border);
+  padding: 6px 8px;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -8px 16px rgba(0, 0, 0, 0.18);
 }
 
 .nav-btn {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-xs);
-  min-height: var(--target);
-  padding: var(--space-sm) var(--space-md);
+  gap: 2px;
+  width: 100%;
+  height: 52px;
+  padding: 4px 2px;
   background: transparent;
   color: var(--muted);
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
   font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.1;
   white-space: nowrap;
   transition:
     color var(--dur) var(--ease),
@@ -205,7 +212,11 @@ h3 {
 .nav-btn.active {
   background: var(--accent);
   color: var(--on-accent);
-  font-weight: 600;
+}
+
+.nav-btn .icon {
+  width: 16px;
+  height: 16px;
 }
 
 /* --- Iconos (SVG inline) --- */
@@ -248,8 +259,36 @@ h3 {
   max-width: var(--content-max);
   margin-inline: auto;
   padding: var(--content-gutter);
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-secondary) transparent;
   min-height: 0;
+}
+
+.app-content::-webkit-scrollbar {
+  width: 10px;
+}
+
+.app-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.app-content::-webkit-scrollbar-thumb {
+  background: var(--color-secondary);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 999px;
+}
+
+.app-content::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border);
+  background-clip: padding-box;
+}
+
+.app-content-inner {
+  min-width: 0;
 }
 
 .section {
@@ -353,9 +392,13 @@ h3 {
 }
 
 .url {
+  min-width: 0;
+  margin-left: auto;
   color: var(--muted);
+  font-family: var(--font-mono);
   font-size: 12px;
   overflow-wrap: anywhere;
+  text-align: right;
   word-break: break-word;
 }
 
@@ -365,6 +408,24 @@ h3 {
   flex-wrap: wrap;
   gap: var(--space-sm);
   margin-top: var(--space-md);
+}
+
+.actions-grid {
+  display: grid;
+}
+
+.actions-grid.cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.actions-grid.cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.actions-grid .btn {
+  width: 100%;
+  min-width: 0;
+  white-space: nowrap;
 }
 
 /* Botón estándar de la app (tamaño sm: 30px / 12px / icono 14). */
@@ -425,6 +486,81 @@ h3 {
 .ok-msg {
   color: var(--ok-text);
   font-size: 13px;
+}
+
+/* Estado de error con CTA de reintento (consumo sin token). */
+.error-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.error-block .error {
+  margin: 0;
+}
+
+/* Refresco en segundo plano: indicador discreto, sin tapar los datos previos. */
+.usage-status {
+  margin: var(--space-xs) 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.error-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.token-retry {
+  min-height: 36px;
+}
+
+/* Formularios de ajustes (token manual e intervalo). */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: var(--space-md);
+}
+
+.field-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.select,
+.input {
+  min-height: var(--target);
+  width: 100%;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  font: inherit;
+}
+
+.token-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.token-form .input {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.token-form .btn,
+.btn-full {
+  min-height: var(--target);
+}
+
+.btn-full {
+  width: 100%;
 }
 
 .bar-row {
@@ -755,22 +891,7 @@ code {
 }
 
 @media (max-width: 480px) {
-  .nav-btn {
-    padding: var(--space-sm);
-  }
-
   .section h2 {
     font-size: 14px;
-  }
-}
-
-@media (max-width: 420px) {
-  .app-nav {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .nav-btn {
-    justify-content: flex-start;
   }
 }

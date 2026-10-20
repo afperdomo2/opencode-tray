@@ -22,7 +22,11 @@ watch(
 )
 
 function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') emit('close')
+  if (e.key === 'Escape') {
+    // Evita que el shell interprete el mismo Escape y cierre el panel entero.
+    e.stopPropagation()
+    emit('close')
+  }
 }
 </script>
 
@@ -39,7 +43,13 @@ function onKeydown(e: KeyboardEvent) {
     >
       <div class="modal-head">
         <h3>{{ title }}</h3>
-        <button type="button" class="icon-btn" :aria-label="t('common.close')" @click="emit('close')">
+        <button
+          type="button"
+          class="icon-btn"
+          :aria-label="t('common.close')"
+          :title="t('common.close')"
+          @click="emit('close')"
+        >
           <Icon name="x" :size="18" />
         </button>
       </div>

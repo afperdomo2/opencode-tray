@@ -25,7 +25,7 @@ func TestLoadDefaultsWhenFileMissing(t *testing.T) {
 
 func TestSaveLoadRoundTrip(t *testing.T) {
 	s := tempStore(t)
-	in := Settings{Language: "en", AutoStart: true, RefreshMin: 30}
+	in := Settings{Language: "en", AutoStart: true, RefreshMin: 30, UsageToken: "blob-cifrado"}
 	if err := s.Save(in); err != nil {
 		t.Fatalf("Save() error: %v", err)
 	}
@@ -35,6 +35,17 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 	}
 	if got != in {
 		t.Errorf("round-trip = %+v, want %+v", got, in)
+	}
+}
+
+func TestPublicHidesUsageToken(t *testing.T) {
+	in := Settings{Language: "es", AutoStart: true, RefreshMin: 15, UsageToken: "blob-cifrado"}
+	pub := in.Public()
+	if pub.UsageToken != "" {
+		t.Errorf("Public().UsageToken = %q, want vacío", pub.UsageToken)
+	}
+	if pub.Language != in.Language || pub.RefreshMin != in.RefreshMin || pub.AutoStart != in.AutoStart {
+		t.Errorf("Public() alteró otros campos: %+v", pub)
 	}
 }
 

@@ -3,6 +3,7 @@ package servicecontrol
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 // Status describe el estado del servicio de fondo.
@@ -26,7 +27,18 @@ func (s *Service) Status() (Status, error) {
 		// Detenido u otro problema: lo tratamos como detenido.
 		return Status{Running: false}, nil
 	}
-	return Status{Running: true, URL: trim(stdout)}, nil
+
+	out := trim(stdout)
+	lower := strings.ToLower(out)
+	// El CLI puede salir con código 0 y "stopped" cuando no hay servicio.
+	if out == "" || lower == "stopped" || strings.Contains(lower, "not running") {
+		return Status{Running: false}, nil
+	}
+	if !strings.HasPrefix(lower, "http://") && !strings.HasPrefix(lower, "https://") {
+		// Corriendo, pero la salida no trae una URL utilizable.
+		return Status{Running: true}, nil
+	}
+	return Status{Running: true, URL: out}, nil
 }
 
 // Info obtiene la información del servidor (/api/info), incluido el PID.

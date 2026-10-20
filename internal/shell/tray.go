@@ -6,21 +6,25 @@ import "github.com/energye/systray"
 type TrayOptions struct {
 	Icon    []byte
 	Tooltip string
-	OnShow  func()
-	OnQuit  func()
+	// OnClick es el clic izquierdo: alterna el panel.
+	OnClick func()
+	// OnShow es el ítem de menú "Mostrar panel": siempre lo abre.
+	OnShow func()
+	OnQuit func()
 }
 
 // TrayHandler gestiona el icono y el menú de la bandeja del sistema.
 type TrayHandler struct {
-	opts  TrayOptions
-	start func()
-	end   func()
+	opts       TrayOptions
+	start      func()
+	end        func()
+	setTooltip func(string)
 }
 
 // NewTrayHandler registra el tray con un bucle externo (integrable con Wails).
 // Llamar Start() cuando la app haya arrancado y End() al cerrar.
 func NewTrayHandler(opts TrayOptions) *TrayHandler {
-	h := &TrayHandler{opts: opts}
+	h := &TrayHandler{opts: opts, setTooltip: systray.SetTooltip}
 	start, end := systray.RunWithExternalLoop(h.onReady, func() {})
 	h.start, h.end = start, end
 	return h
@@ -30,10 +34,10 @@ func (h *TrayHandler) onReady() {
 	systray.SetIcon(h.opts.Icon)
 	systray.SetTooltip(h.opts.Tooltip)
 
-	// Clic izquierdo en el icono = mostrar el panel.
+	// Clic izquierdo en el icono = alternar el panel.
 	systray.SetOnClick(func(systray.IMenu) {
-		if h.opts.OnShow != nil {
-			h.opts.OnShow()
+		if h.opts.OnClick != nil {
+			h.opts.OnClick()
 		}
 	})
 
@@ -66,5 +70,12 @@ func (h *TrayHandler) Start() {
 func (h *TrayHandler) End() {
 	if h.end != nil {
 		h.end()
+	}
+}
+
+// SetTooltip actualiza el texto que aparece al pasar el cursor por el icono.
+func (h *TrayHandler) SetTooltip(text string) {
+	if h.setTooltip != nil && text != "" {
+		h.setTooltip(text)
 	}
 }

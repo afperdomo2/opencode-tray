@@ -113,13 +113,14 @@ async function run(fn: () => Promise<void>) {
           <div class="status-row">
             <span class="dot" :class="running ? 'on' : 'off'" aria-hidden="true"></span>
             <span>{{ running ? t('service.running') : t('service.stopped') }}</span>
+            <span v-if="url" class="url" :title="url">{{ url }}</span>
           </div>
-          <p v-if="url" class="url">{{ url }}</p>
         </template>
 
-        <div class="actions">
+        <div class="actions actions-grid cols-2">
           <button
             class="btn"
+            :title="t('service.startHint')"
             :disabled="busy || loadingStatus || running"
             @click="run(() => ServiceStart())"
           >
@@ -127,15 +128,26 @@ async function run(fn: () => Promise<void>) {
           </button>
           <button
             class="btn"
+            :title="t('service.stopHint')"
             :disabled="busy || loadingStatus || !running"
             @click="run(() => ServiceStop())"
           >
             <Icon name="stop" :size="14" />{{ t('service.stop') }}
           </button>
-          <button class="btn" :disabled="busy || loadingStatus" @click="run(() => ServiceForceStop())">
+          <button
+            class="btn"
+            :title="t('service.forceStopHint')"
+            :disabled="busy || loadingStatus"
+            @click="run(() => ServiceForceStop())"
+          >
             <Icon name="zap" :size="14" />{{ t('service.forceStop') }}
           </button>
-          <button class="btn" :disabled="busy || loadingStatus" @click="refresh">
+          <button
+            class="btn"
+            :title="t('service.refreshHint')"
+            :disabled="busy || loadingStatus"
+            @click="refresh"
+          >
             <Icon name="refresh" :size="14" />{{ t('service.refresh') }}
           </button>
         </div>
@@ -173,14 +185,19 @@ async function run(fn: () => Promise<void>) {
           </ul>
         </template>
 
-        <div class="actions">
-          <button class="btn" @click="ConfigOpenInEditor">
+        <div class="actions actions-grid cols-3">
+          <button class="btn" :title="t('config.openEditorHint')" @click="ConfigOpenInEditor">
             <Icon name="externalLink" :size="14" />{{ t('config.openEditor') }}
           </button>
-          <button class="btn" @click="ConfigOpenDir">
+          <button class="btn" :title="t('config.openDirHint')" @click="ConfigOpenDir">
             <Icon name="folder" :size="14" />{{ t('config.openDir') }}
           </button>
-          <button class="btn" :disabled="loadingJson" @click="showJson = true">
+          <button
+            class="btn"
+            :title="t('config.jsonHint')"
+            :disabled="loadingJson"
+            @click="showJson = true"
+          >
             <Icon name="code" :size="14" />{{ t('config.json') }}
           </button>
         </div>

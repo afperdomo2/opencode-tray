@@ -22,6 +22,10 @@ export function GetSettings() {
   return window['go']['main']['App']['GetSettings']();
 }
 
+export function HideWindow() {
+  return window['go']['main']['App']['HideWindow']();
+}
+
 export function NotifyEvaluate() {
   return window['go']['main']['App']['NotifyEvaluate']();
 }
@@ -54,8 +58,16 @@ export function SetAutoStart(arg1) {
   return window['go']['main']['App']['SetAutoStart'](arg1);
 }
 
+export function SetFlyoutHeight(arg1) {
+  return window['go']['main']['App']['SetFlyoutHeight'](arg1);
+}
+
 export function SetLanguage(arg1) {
   return window['go']['main']['App']['SetLanguage'](arg1);
+}
+
+export function SetRefreshMin(arg1) {
+  return window['go']['main']['App']['SetRefreshMin'](arg1);
 }
 
 export function ToggleWindow() {
@@ -70,8 +82,16 @@ export function UsageFetch() {
   return window['go']['main']['App']['UsageFetch']();
 }
 
+export function UsageReloadToken() {
+  return window['go']['main']['App']['UsageReloadToken']();
+}
+
 export function UsageSetManualToken(arg1) {
   return window['go']['main']['App']['UsageSetManualToken'](arg1);
+}
+
+export function UsageTokenStatus() {
+  return window['go']['main']['App']['UsageTokenStatus']();
 }
 
 export function WebAccessApplyMode(arg1) {
@@ -92,4 +112,8 @@ export function WebAccessURLs() {
 
 export function WebAccessUsername() {
   return window['go']['main']['App']['WebAccessUsername']();
+}
+
+export function WindowBlurred() {
+  return window['go']['main']['App']['WindowBlurred']();
 }

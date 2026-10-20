@@ -1,6 +1,7 @@
 package usage
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -8,14 +9,17 @@ import (
 	"testing"
 )
 
-func writeAuthFile(t *testing.T, key string) string {
+func writeAuthFile(t *testing.T, content string) string {
 	t.Helper()
 	p := filepath.Join(t.TempDir(), "auth.json")
-	content := `{"opencode-go":{"type":"api","key":"` + key + `"}}`
 	if err := os.WriteFile(p, []byte(content), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	return p
+}
+
+func authJSON(provider, key string) string {
+	return `{"` + provider + `":{"type":"api","key":"` + key + `"}}`
 }
 
 func newTestService(t *testing.T, handler http.HandlerFunc) (*Service, *httptest.Server) {
@@ -79,8 +83,8 @@ func TestFetchUnauthorized(t *testing.T) {
 		w.WriteHeader(http.StatusUnauthorized)
 	})
 	s.SetManualToken("bad")
-	if _, err := s.Fetch(); err == nil {
-		t.Error("401 debería dar error")
+	if _, err := s.Fetch(); !errors.Is(err, ErrInvalidToken) {
+		t.Errorf("401 debería dar ErrInvalidToken, got %v", err)
 	}
 }
 
@@ -90,47 +94,115 @@ func TestFetchNotSubscribed(t *testing.T) {
 		w.Write([]byte(`{"error":{"type":"EntitlementError"}}`))
 	})
 	s.SetManualToken("k1")
-	_, err := s.Fetch()
-	if err == nil || err.Error() != "sin suscripción OpenCode Go activa" {
-		t.Errorf("error = %v", err)
+	if _, err := s.Fetch(); !errors.Is(err, ErrNoEntitlement) {
+		t.Errorf("403 entitlement debería dar ErrNoEntitlement, got %v", err)
 	}
 }
 
-func TestResolveTokenManualWins(t *testing.T) {
-	s := &Service{authFile: writeAuthFile(t, "from-auth")}
+func TestFetchFallsBackToNextCandidate(t *testing.T) {
+	var seen []string
+	s, _ := newTestService(t, func(w http.ResponseWriter, r *http.Request) {
+		tok := r.Header.Get("Authorization")
+		seen = append(seen, tok)
+		if tok == "Bearer legacy" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.Write([]byte(`{"usage":{"rolling":{"percent":10},"weekly":{"percent":20},"monthly":{"percent":30}}}`))
+	})
+	s.authFiles = []string{writeAuthFile(t, authJSON(providerLegacy, "legacy"))}
+	s.SetManualToken("manual")
+
+	u, err := s.Fetch()
+	if err != nil {
+		t.Fatalf("Fetch() error: %v", err)
+	}
+	if u.Monthly.Percent != 30 {
+		t.Errorf("Monthly.Percent = %v", u.Monthly.Percent)
+	}
+	if len(seen) != 2 || seen[0] != "Bearer legacy" || seen[1] != "Bearer manual" {
+		t.Errorf("orden de candidatos = %v", seen)
+	}
+}
+
+func TestResolveTokenPrefersAuthOverManual(t *testing.T) {
+	s := &Service{authFiles: []string{writeAuthFile(t, authJSON(providerGo, "from-auth"))}}
 	s.SetManualToken("manual")
 	tok, err := s.ResolveToken()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if tok != "manual" {
-		t.Errorf("token = %q, want manual", tok)
-	}
-	s.ClearManualToken()
-	tok, err = s.ResolveToken()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if tok != "from-auth" {
 		t.Errorf("token = %q, want from-auth", tok)
 	}
-}
-
-func TestResolveTokenFromAuthFile(t *testing.T) {
-	s := &Service{authFile: writeAuthFile(t, "from-auth")}
-	tok, err := s.ResolveToken()
+	s.authFiles = nil
+	tok, err = s.ResolveToken()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if tok != "from-auth" {
-		t.Errorf("token = %q", tok)
+	if tok != "manual" {
+		t.Errorf("token = %q, want manual", tok)
+	}
+}
+
+func TestResolveTokenAcceptsLegacyProvider(t *testing.T) {
+	for _, provider := range []string{providerGo, providerLegacy} {
+		t.Run(provider, func(t *testing.T) {
+			s := &Service{authFiles: []string{writeAuthFile(t, authJSON(provider, "tok"))}}
+			tok, err := s.ResolveToken()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tok != "tok" {
+				t.Errorf("token = %q", tok)
+			}
+			status := s.TokenStatus()
+			if !status.Configured || status.Source != sourceJSON || status.Provider != provider {
+				t.Errorf("status = %+v", status)
+			}
+		})
 	}
 }
 
 func TestResolveTokenMissing(t *testing.T) {
-	s := &Service{authFile: filepath.Join(t.TempDir(), "nope.json")}
-	if _, err := s.ResolveToken(); err == nil {
-		t.Error("sin auth.json debería dar error")
+	s := &Service{authFiles: []string{filepath.Join(t.TempDir(), "nope.json")}}
+	if _, err := s.ResolveToken(); !errors.Is(err, ErrNoToken) {
+		t.Errorf("sin token debería dar ErrNoToken, got %v", err)
+	}
+	status := s.TokenStatus()
+	if status.Configured || status.Source != sourceNone {
+		t.Errorf("status = %+v", status)
+	}
+}
+
+func TestTokenStatusManualAndExport(t *testing.T) {
+	s := &Service{}
+	s.SetManualToken("manual")
+	status := s.TokenStatus()
+	if !status.Configured || status.Source != sourceManual {
+		t.Errorf("status manual = %+v", status)
+	}
+
+	s.setCachedExport(AuthKey{Provider: providerGo, Token: "exported", Source: sourceExport})
+	status = s.TokenStatus()
+	if !status.Configured || status.Source != sourceExport || status.Provider != providerGo {
+		t.Errorf("status export = %+v", status)
+	}
+}
+
+func TestValidateToken(t *testing.T) {
+	s, _ := newTestService(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") == "Bearer good" {
+			w.Write([]byte(`{"usage":{"rolling":{"percent":1},"weekly":{"percent":2},"monthly":{"percent":3}}}`))
+			return
+		}
+		w.WriteHeader(http.StatusUnauthorized)
+	})
+	if err := s.ValidateToken("good"); err != nil {
+		t.Errorf("token válido: %v", err)
+	}
+	if err := s.ValidateToken("bad"); !errors.Is(err, ErrInvalidToken) {
+		t.Errorf("token inválido = %v", err)
 	}
 }
 

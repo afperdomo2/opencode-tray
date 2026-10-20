@@ -184,6 +184,35 @@ Todos los botones de acción de la app comparten una única clase, tamaño `sm`,
 
 No usar estilos nativos del navegador para acciones (p. ej. el botón Guardar de Acceso web). Cuando un `.btn` comparte fila con un input, debe igualar su altura (`min-height: var(--target)`) para mantener la alineación.
 
+### Flyout de Alto Fijo
+
+- El panel mantiene **380×600 px** en todas las pestañas; el alto no depende del contenido.
+- El frontend no mide ni solicita cambios de alto al cambiar de sección.
+- Solo `.app-content` hace scroll; la nav inferior permanece fija.
+- Estado y URI comparten `.status-row` tanto en Resumen como en Servicio, con la URI alineada a la derecha.
+
+### Compact Action Grid
+
+Las filas de acciones densas usan etiquetas cortas y una rejilla explícita para evitar saltos internos:
+
+- **Servicio:** 2×2 (`Iniciar`, `Detener`, `Forzar`, `Refrescar`).
+- **Configuración:** 3 columnas (`Editor`, `Carpeta`, `JSON`).
+- Cada `.btn` de la rejilla usa `width: 100%`, `min-width: 0` y `white-space: nowrap`.
+- Los textos completos viven en el tooltip nativo (`title`).
+
+### Tooltips
+
+- Todo botón solo-icono debe llevar `aria-label` y `title` con la misma acción.
+- Los botones con etiqueta corta llevan `title` con la descripción completa.
+- Se usa el tooltip nativo; no se añade componente ni dependencia.
+
+### Scroll Estable
+
+- `.app-content` usa `scrollbar-gutter: stable` para reservar siempre el ancho de la barra.
+- La barra es fina y discreta (`scrollbar-width: thin` + `::-webkit-scrollbar`), visible solo al hacer scroll.
+- `overflow-x: hidden`; el contenido nunca debe generar desplazamiento horizontal.
+- Prohibido depender de `overflow-y: scroll` para evitar el reflujo: la barra permanente empeora la percepción del panel.
+
 ### Responsive Layout
 
 El panel se adapta de ~340 px a monitores grandes sin estirar widgets:
@@ -192,7 +221,7 @@ El panel se adapta de ~340 px a monitores grandes sin estirar widgets:
 - **Grids:** `repeat(auto-fit, minmax(min(100%, 320px), 1fr))` para Resumen, Servicio, Acceso web y Ajustes.
 - **Container queries:** las cards son contenedores (`container-type: inline-size`); el contenido interno se reorganiza cuando la card mide menos de 300 px.
 - **Texto:** `min-width: 0` y `overflow-wrap: anywhere` en URLs, nombres MCP y títulos.
-- **Ventana:** mínima 340×420; sin scroll horizontal en ningún tamaño.
+- **Ventana:** panel fijo 380×600; el contenido se adapta sin scroll horizontal.
 - **No usar DataGrid** para listas simples ni Tailwind como dependencia.
 
 ### Loading Skeletons

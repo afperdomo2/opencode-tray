@@ -28,35 +28,80 @@ func (w *apiWindow) toWindow() Window {
 	return out
 }
 
-// Fetch consulta GET /zen/go/v1/usage y devuelve las tres ventanas de consumo.
+// Fetch consulta el consumo probando los candidatos en orden: export de
+// OpenCode v2 → auth.json legado → token manual.
 func (s *Service) Fetch() (Usage, error) {
-	key, err := s.ResolveToken()
-	if err != nil {
-		return Usage{}, err
+	candidates := s.tokenCandidates()
+	if len(candidates) == 0 {
+		return Usage{}, ErrNoToken
 	}
 
+	var sawInvalid, sawEntitlement, sawForbidden bool
+	for _, candidate := range candidates {
+		u, err := s.fetchWithToken(candidate.Token)
+		if err == nil {
+			return u, nil
+		}
+		switch {
+		case errors.Is(err, ErrTransport):
+			return Usage{}, err
+		case errors.Is(err, ErrInvalidToken):
+			sawInvalid = true
+		case errors.Is(err, ErrNoEntitlement):
+			sawEntitlement = true
+		case errors.Is(err, ErrForbidden):
+			sawForbidden = true
+		default:
+			return Usage{}, err
+		}
+	}
+
+	switch {
+	case sawInvalid:
+		return Usage{}, ErrInvalidToken
+	case sawEntitlement:
+		return Usage{}, ErrNoEntitlement
+	case sawForbidden:
+		return Usage{}, ErrForbidden
+	default:
+		return Usage{}, ErrNoToken
+	}
+}
+
+// ValidateToken comprueba un token con una petición directa, sin tocar los
+// candidatos configurados.
+func (s *Service) ValidateToken(tok string) error {
+	if tok == "" {
+		return ErrNoToken
+	}
+	_, err := s.fetchWithToken(tok)
+	return err
+}
+
+func (s *Service) fetchWithToken(key string) (Usage, error) {
 	req, err := http.NewRequest(http.MethodGet, s.baseURL+"/zen/go/v1/usage", nil)
 	if err != nil {
 		return Usage{}, err
 	}
 	req.Header.Set("Authorization", "Bearer "+key)
+	req.Header.Set("Accept", "application/json")
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return Usage{}, fmt.Errorf("consultar uso: %w", err)
+		return Usage{}, fmt.Errorf("%w: %v", ErrTransport, err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return Usage{}, fmt.Errorf("leer respuesta: %w", err)
+		return Usage{}, fmt.Errorf("%w: %v", ErrTransport, err)
 	}
 
 	switch resp.StatusCode {
 	case http.StatusOK:
 		// continuar
 	case http.StatusUnauthorized:
-		return Usage{}, errors.New("API key de OpenCode Go inválida")
+		return Usage{}, ErrInvalidToken
 	case http.StatusForbidden:
 		var e struct {
 			Error struct {
@@ -64,11 +109,11 @@ func (s *Service) Fetch() (Usage, error) {
 			} `json:"error"`
 		}
 		if json.Unmarshal(body, &e) == nil && e.Error.Type == "EntitlementError" {
-			return Usage{}, errors.New("sin suscripción OpenCode Go activa")
+			return Usage{}, ErrNoEntitlement
 		}
-		return Usage{}, errors.New("sin permiso para consultar el uso")
+		return Usage{}, ErrForbidden
 	default:
-		return Usage{}, fmt.Errorf("respuesta inesperada: HTTP %d", resp.StatusCode)
+		return Usage{}, fmt.Errorf("USAGE_HTTP_%d: respuesta inesperada", resp.StatusCode)
 	}
 
 	var parsed struct {
@@ -79,7 +124,7 @@ func (s *Service) Fetch() (Usage, error) {
 		} `json:"usage"`
 	}
 	if err := json.Unmarshal(body, &parsed); err != nil || parsed.Usage == nil {
-		return Usage{}, errors.New("no se pudo parsear la respuesta de uso")
+		return Usage{}, errors.New("USAGE_PARSE: no se pudo parsear la respuesta de uso")
 	}
 
 	return Usage{

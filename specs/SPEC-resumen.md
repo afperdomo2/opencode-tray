@@ -10,7 +10,8 @@
 
 Compone datos ya existentes (`ServiceStatus`, `UsageFetch`, `ConfigListMCP`, `ConfigJSON`, `ServiceStart/Stop/ForceStop`). **Orden fijo de bloques**, cada uno como una **card** con jerarquía clara:
 
-1. **Consumo (primero).** Resumen compacto de las tres ventanas (`rolling` / `weekly` / `monthly`) con su % y severidad (ok / warn / crítico). Es el dato que más se consulta.
+1. **Consumo (primero).** Resumen compacto de las tres ventanas (`rolling` / `weekly` / `monthly`) con su % y severidad (ok / warn / crítico). Es el dato que más se consulta. Usa un **caché nativo** (`frontend/src/lib/query.ts`): al remontar dentro de `staleTime` no muestra skeleton ni repite la petición; los datos previos se conservan durante refrescos y errores.
+   - **Excepción a "sin botones"**: si el token falla o no existe, la card muestra CTAs **"Reintentar leyendo de OpenCode"** y **"Configurar API key"** (navega a Ajustes). En estado normal sigue sin botones.
 2. **MCP / Config.** Lista compacta de servidores MCP (nombre + estado) y, debajo, un **acordeón** con el **JSON de configuración** — **colapsado por defecto** (si no, la vista crece demasiado).
 3. **Servicio (último).** Estado (corriendo / detenido) + acciones rápidas (iniciar / detener / actualizar).
 
@@ -22,7 +23,7 @@ Compone datos ya existentes (`ServiceStatus`, `UsageFetch`, `ConfigListMCP`, `Co
 4. **Config.** El **JSON de configuración** se muestra en un **acordeón** (colapsado por defecto) tanto en la vista Resumen como en la sección Config.
 5. **Profundidad visual ("menos plano").** Superficies/cards, sombras sutiles (tokens del design system), jerarquía tipográfica y estados hover: sensación de app de escritorio.
 
-**Contrato:** **sin cambios de backend**; reusa bindings existentes. Es una capa de composición + presentación en el frontend.
+**Contrato:** reusa los bindings existentes de `usage` y añade los de estado/reintento de token (`UsageTokenStatus`, `UsageReloadToken`, `UsageSetManualToken`, `UsageClearManualToken`). La composición y el caché viven en el frontend.
 
 ## Tech Stack
 
@@ -64,6 +65,8 @@ frontend/src/
 
 - **Vitest** + `@vue/test-utils`, mockeando los bindings de Wails:
   - `Resumen.vue`: estados cargando / servicio corriendo / detenido / consumo ok-warn-crítico / error.
+- Caché: segunda montura dentro de `staleTime` sin skeleton ni petición; refresco en segundo plano conserva datos.
+- Token: sin token/inválido muestra CTAs; "Reintentar leyendo de OpenCode" invoca el backend y refresca.
   - `Accordion.vue`: colapsado por defecto; abre y cierra al clic; `aria-expanded` correcto.
   - `LanguageSwitch.vue`: cambia el locale (es ↔ en).
   - `Icon.vue`: renderiza `<svg>` por nombre; decorativo → oculto a lectores.
@@ -77,6 +80,8 @@ frontend/src/
 ## Success Criteria
 
 - [ ] `Resumen` es la vista inicial y muestra **Consumo → MCP/Config (acordeón) → Servicio**, de forma compacta y bien seccionada.
+- [ ] El consumo usa caché: remontar dentro de `staleTime` no muestra skeleton ni repite la petición.
+- [ ] Sin token/inválido muestra reintento de lectura desde OpenCode y acceso a Ajustes.
 - [ ] **Iconos** en navegación, botones de acción y controles relevantes; **sin emoji**.
 - [ ] Cabecera **sin título**; idioma como **control segmentado** ES | EN.
 - [ ] El **JSON de config** está **colapsado por defecto** (acordeón) en Resumen y en Config.

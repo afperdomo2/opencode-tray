@@ -2,7 +2,11 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"math"
 	"os"
+	"strings"
 
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 
@@ -39,7 +43,7 @@ func NewApp() *App {
 	key, _ := shell.NewSystemRunKey()
 	svc := servicecontrol.New()
 
-	return &App{
+	app := &App{
 		settings:  shell.NewSettingsStore(path),
 		autostart: shell.NewAutoStart(key, os.Executable),
 		service:   svc,
@@ -48,6 +52,22 @@ func NewApp() *App {
 		cfgviewer: configviewer.New(),
 		notifier:  notifications.New(),
 	}
+	app.loadManualUsageToken()
+	return app
+}
+
+// loadManualUsageToken descifra el token manual guardado, si existe. Si DPAPI
+// falla (otro usuario/máquina o blob corrupto), se ignora sin romper el arranque.
+func (a *App) loadManualUsageToken() {
+	st, err := a.settings.Load()
+	if err != nil || st.UsageToken == "" {
+		return
+	}
+	tok, err := shell.UnprotectSecret(st.UsageToken)
+	if err != nil || tok == "" {
+		return
+	}
+	a.usage.SetManualToken(tok)
 }
 
 // startup se ejecuta al arrancar: configura la ventana y el tray.
@@ -57,17 +77,22 @@ func (a *App) startup(ctx context.Context) {
 	// Controlador de ventana (mostrar/ocultar el panel).
 	a.win = shell.NewWindowController(wailsWindow{ctx})
 
+	// Sacar la ventana de la barra de tareas y de Alt+Tab.
+	shell.PrepareFlyoutWindow()
+
 	// Envío de notificaciones DESHABILITADO (Fase 4): inyectar aquí
 	// wailsruntime.SendNotification (go-toast en Windows) bloqueaba el bucle de
 	// mensajes de energye/systray y dejaba la bandeja muda (ni clic izquierdo ni
 	// menú contextual). El notifier conserva su sender no-op; la lógica de
 	// decisión queda probada y lista para reactivarse por una vía segura.
 
-	// Arrancar el tray: clic izquierdo muestra el panel; "Salir" cierra la app.
+	// Arrancar el tray: clic izquierdo alterna el panel anclado al icono;
+	// "Mostrar panel" siempre lo abre; "Salir" cierra la app.
 	a.tray = shell.NewTrayHandler(shell.TrayOptions{
 		Icon:    trayIcon,
 		Tooltip: "OpenCode Tray",
-		OnShow:  func() { a.win.Show() },
+		OnClick: func() { a.win.ToggleAt(shell.CursorPosition()) },
+		OnShow:  func() { a.win.ShowAt(shell.CursorPosition()) },
 		OnQuit:  func() { wailsruntime.Quit(ctx) },
 	})
 	a.tray.Start()
@@ -86,16 +111,40 @@ type wailsWindow struct{ ctx context.Context }
 func (w wailsWindow) Show() { wailsruntime.WindowShow(w.ctx) }
 func (w wailsWindow) Hide() { wailsruntime.WindowHide(w.ctx) }
 
-// --- Ajustes y ventana ---
-
-// GetSettings devuelve los ajustes actuales.
-func (a *App) GetSettings() shell.Settings {
-	st, _ := a.settings.Load()
-	return st
+func (w wailsWindow) Resize(width, height int) {
+	wailsruntime.WindowSetSize(w.ctx, width, height)
 }
 
-// SaveSettings persiste los ajustes dados.
+func (w wailsWindow) Place(anchor shell.Point, width, height int) {
+	shell.PositionFlyout(anchor, width, height)
+}
+
+func (w wailsWindow) Focus() { shell.FocusFlyout() }
+
+func (w wailsWindow) IsForeground() bool { return shell.FlyoutForeground() }
+
+// --- Ajustes y ventana ---
+
+// GetSettings devuelve los ajustes actuales sin secretos.
+func (a *App) GetSettings() shell.Settings {
+	st, _ := a.settings.Load()
+	return st.Public()
+}
+
+// SaveSettings persiste los ajustes dados preservando el token cifrado, que
+// nunca viaja al frontend.
 func (a *App) SaveSettings(st shell.Settings) error {
+	current, _ := a.settings.Load()
+	current.Language = st.Language
+	current.AutoStart = st.AutoStart
+	current.RefreshMin = st.RefreshMin
+	return a.settings.Save(current)
+}
+
+// SetRefreshMin cambia y persiste el intervalo de refresco del consumo.
+func (a *App) SetRefreshMin(min int) error {
+	st, _ := a.settings.Load()
+	st.RefreshMin = min
 	return a.settings.Save(st)
 }
 
@@ -118,7 +167,28 @@ func (a *App) SetAutoStart(enabled bool) error {
 
 // ToggleWindow alterna mostrar/ocultar el panel desde el tray.
 func (a *App) ToggleWindow() {
-	a.win.Toggle()
+	a.win.ToggleAt(shell.CursorPosition())
+}
+
+// SetFlyoutHeight ajusta el alto del panel según su contenido.
+func (a *App) SetFlyoutHeight(height int) {
+	if a.win != nil {
+		a.win.SetHeight(height)
+	}
+}
+
+// HideWindow oculta el panel (por ejemplo, con Escape).
+func (a *App) HideWindow() {
+	if a.win != nil {
+		a.win.Hide()
+	}
+}
+
+// WindowBlurred oculta el panel al perder el foco, con guarda anti-carrera.
+func (a *App) WindowBlurred() {
+	if a.win != nil {
+		a.win.HideFromBlur()
+	}
 }
 
 // --- Control del servicio (service-control) ---
@@ -150,13 +220,70 @@ func (a *App) ServiceForceStop() error { return a.service.ForceStop() }
 // --- Consumo (usage) ---
 
 // UsageFetch consulta el consumo de OpenCode Go (rolling/weekly/monthly).
-func (a *App) UsageFetch() (usage.Usage, error) { return a.usage.Fetch() }
+func (a *App) UsageFetch() (usage.Usage, error) {
+	u, err := a.usage.Fetch()
+	if err == nil && a.tray != nil {
+		a.tray.SetTooltip(usageTooltip(u))
+	}
+	return u, err
+}
 
-// UsageSetManualToken fija el token manual de Go (desde Ajustes).
-func (a *App) UsageSetManualToken(tok string) { a.usage.SetManualToken(tok) }
+// usageTooltip resume los tres porcentajes para el tooltip nativo del tray.
+func usageTooltip(u usage.Usage) string {
+	return fmt.Sprintf(
+		"OpenCode · 5h %d%% · 7d %d%% · 30d %d%%",
+		int(math.Round(u.Rolling.Percent)),
+		int(math.Round(u.Weekly.Percent)),
+		int(math.Round(u.Monthly.Percent)),
+	)
+}
 
-// UsageClearManualToken elimina el token manual (vuelve a auth.json).
-func (a *App) UsageClearManualToken() { a.usage.ClearManualToken() }
+// UsageTokenStatus indica de dónde saldría el token (sin ejecutar red).
+func (a *App) UsageTokenStatus() usage.TokenStatus { return a.usage.TokenStatus() }
+
+// UsageReloadToken invalida el caché y relee el token vigente desde OpenCode.
+func (a *App) UsageReloadToken() (usage.TokenStatus, error) {
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return a.usage.ReloadToken(ctx)
+}
+
+// UsageSetManualToken valida, fija y persiste cifrado el token manual.
+func (a *App) UsageSetManualToken(tok string) error {
+	tok = strings.TrimSpace(tok)
+	if tok == "" {
+		return errors.New("la API key no puede estar vacía")
+	}
+	err := a.usage.ValidateToken(tok)
+	if err != nil && (errors.Is(err, usage.ErrInvalidToken) || errors.Is(err, usage.ErrNoEntitlement)) {
+		return err
+	}
+	// Si falla la red no bloqueamos el guardado: el próximo fetch reintenta.
+	blob, perr := shell.ProtectSecret(tok)
+	if perr != nil {
+		return perr
+	}
+	st, _ := a.settings.Load()
+	st.UsageToken = blob
+	if err := a.settings.Save(st); err != nil {
+		return err
+	}
+	a.usage.SetManualToken(tok)
+	return nil
+}
+
+// UsageClearManualToken elimina el token manual (en disco y en memoria).
+func (a *App) UsageClearManualToken() error {
+	st, _ := a.settings.Load()
+	st.UsageToken = ""
+	if err := a.settings.Save(st); err != nil {
+		return err
+	}
+	a.usage.ClearManualToken()
+	return nil
+}
 
 // --- Acceso web (web-access) ---
 

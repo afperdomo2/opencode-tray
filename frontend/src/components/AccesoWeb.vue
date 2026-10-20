@@ -145,6 +145,7 @@ async function changePassword() {
             type="button"
             class="icon-btn"
             :aria-label="showPassword ? t('web.hide') : t('web.show')"
+            :title="showPassword ? t('web.hide') : t('web.show')"
             @click="showPassword = !showPassword"
           >
             <Icon :name="showPassword ? 'eyeOff' : 'eye'" :size="16" />

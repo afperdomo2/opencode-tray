@@ -6,6 +6,7 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/windows"
 
 	"opencode-tray/internal/shell"
 )
@@ -30,12 +31,18 @@ func main() {
 
 	err := wails.Run(&options.App{
 		Title:            "OpenCode Tray",
-		Width:            380,
-		Height:           520,
-		MinWidth:         340,
-		MinHeight:        420,
+		Width:            shell.FlyoutWidth,
+		Height:           shell.FlyoutMaxHeight,
 		AssetServer:      &assetserver.Options{Assets: assets},
 		BackgroundColour: &options.RGBA{R: 15, G: 23, B: 42, A: 1},
+		// Flyout nativo: sin marco, sin resize, siempre encima y con clase Win32
+		// propia para anclarlo al icono del tray.
+		Frameless:     true,
+		DisableResize: true,
+		AlwaysOnTop:   true,
+		Windows: &windows.Options{
+			WindowClassName: shell.FlyoutWindowClass,
+		},
 		// Cerrar la ventana la minimiza al tray; no sale de la app.
 		HideWindowOnClose: true,
 		// Arranca oculto: solo se ve el icono de bandeja.

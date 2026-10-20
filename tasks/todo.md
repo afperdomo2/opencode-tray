@@ -307,3 +307,171 @@
   - Acceptance: cada bloque muestra skeleton/error/datos de forma independiente.
   - Verify: `servicio.spec.ts`, `acceso-web.spec.ts`, `ajustes.spec.ts` — en verde.
   - Files: `Servicio.vue`, `AccesoWeb.vue`, `Ajustes.vue`, `*.spec.ts`.
+
+---
+
+## Fase 10 — token de OpenCode + caché de consumo
+
+> Specs: `SPEC-usage.md`, `SPEC-shell.md`, `SPEC-resumen.md`, `SPEC-ui-ux.md` (iteración futura de token/caché).
+
+- [x] **Task: Persistencia cifrada del token manual (DPAPI)**
+  - Acceptance: el token manual se guarda cifrado en `settings.json`; `GetSettings` nunca lo expone; `SaveSettings` no lo borra.
+  - Verify: `go test ./internal/shell/...` (round-trip DPAPI, blob inválido, sanitizado).
+  - Files: `internal/shell/settings.go`, `internal/shell/secret_windows.go`, `internal/shell/secret_other.go`, `*_test.go`, `app.go`.
+
+- [x] **Task: Lectura del token de OpenCode v2**
+  - Acceptance: soporta `opencode` y `opencode-go` en `auth.json`; relee el archivo en cada consulta; `ReloadToken()` usa `opencode auth export` y cachea el token solo en memoria.
+  - Verify: `go test ./internal/usage/...` (parser de export, runner mockeado, candidatos, 401/403).
+  - Files: `internal/usage/token.go`, `internal/usage/export.go`, `internal/usage/exec_windows.go`, `internal/usage/fetch.go`, `*_test.go`.
+
+- [x] **Task: Reintento y estado del token en Wails**
+  - Acceptance: `UsageTokenStatus`, `UsageReloadToken`, `UsageSetManualToken` y `UsageClearManualToken` expuestos; errores con prefijos `USAGE_*`.
+  - Verify: `go test ./...` + `wails build` regenera bindings.
+  - Files: `app.go`, `internal/usage/*.go`, `frontend/wailsjs/**` (generado).
+
+- [x] **Task: Caché nativo de consultas**
+  - Acceptance: `useQuery` con caché en módulo, `staleTime`, dedupe, datos previos y skeleton solo inicial.
+  - Verify: `pnpm test` (`query.spec.ts`).
+  - Files: `frontend/src/lib/query.ts`, `query.spec.ts`.
+
+- [x] **Task: Resumen con caché y reintento de token**
+  - Acceptance: no muestra skeleton al remontar dentro de `staleTime`; conserva datos al refrescar; CTA de reintento/configuración sin token.
+  - Verify: `resumen.spec.ts` en verde.
+  - Files: `Resumen.vue`, `App.vue`, `resumen.spec.ts`.
+
+- [x] **Task: Ajustes — token e intervalo**
+  - Acceptance: card OpenCode Go con estado, reintento, API key manual write-only, quitar y selector de intervalo; todo vía i18n.
+  - Verify: `ajustes.spec.ts` en verde; `pnpm build`.
+  - Files: `Ajustes.vue`, `frontend/src/lib/settings.ts`, `frontend/src/lib/usage.ts`, `i18n/*`, `style.css`, `ajustes.spec.ts`.
+
+---
+
+## Fase 11 — flyout nativo anclado
+
+> Specs: `SPEC-shell.md` y `SPEC-ui-ux.md` (Iteración 5). Backend + frontend; sin dependencias nuevas.
+
+- [x] **Task: Geometría de anclaje + Win32**
+  - **Hecho:** `flyout.go` calcula la posición para taskbar arriba/abajo/izquierda/derecha con clamping; `flyout_windows.go` posiciona en píxeles físicos, aplica `WS_EX_TOOLWINDOW` y foco.
+  - Acceptance: calcula la posición del panel para taskbar arriba/abajo/izquierda/derecha, con clamping; posiciona en píxeles físicos; aplica `WS_EX_TOOLWINDOW` y foco.
+  - Verify: `go test ./internal/shell/...` (4 bordes, multi-monitor, clamping).
+  - Files: `internal/shell/flyout.go`, `flyout_windows.go`, `flyout_other.go`, `flyout_test.go`.
+
+- [x] **Task: Controlador de flyout**
+  - **Hecho:** `ShowAt`, `Hide`, `HideFromBlur`, `ToggleAt` y `SetHeight` con guarda anti-carrera y clamp 320–600 px.
+  - Acceptance: `ShowAt`, `Hide`, `HideFromBlur`, `ToggleAt`, `SetHeight`; guarda anti-carrera blur/tray y clamp 320–600 px.
+  - Verify: tests con reloj inyectado y backend mock.
+  - Files: `internal/shell/window.go`, `window_test.go`.
+
+- [x] **Task: Configuración de ventana y bindings**
+  - **Hecho:** ventana frameless/fija/topmost con `WindowClassName`; tray distingue clic (toggle) de menú (mostrar); bindings `SetFlyoutHeight`, `HideWindow` y `WindowBlurred`.
+  - Acceptance: ventana frameless/fija/topmost con `WindowClassName`; tray distingue clic (toggle) de menú (mostrar); bindings `SetFlyoutHeight`, `HideWindow` y `WindowBlurred`.
+  - Verify: `go test ./...` + `wails build`.
+  - Files: `main.go`, `app.go`, `internal/shell/tray.go`, `frontend/wailsjs/**` (generado).
+
+- [x] **Task: Nav inferior y alto según contenido**
+  - **Hecho:** nav al final del DOM como footer fijo; `ResizeObserver` con debounce solicita el alto; `Esc`/`blur` cierran; el modal no propaga `Esc`.
+  - Acceptance: nav al final del DOM, footer fijo, contenido con scroll; `ResizeObserver` con debounce solicita el alto; `Esc`/`blur` cierran; el modal no propaga `Esc`.
+  - Verify: `pnpm test` (`app.spec.ts` y `modal.spec.ts`).
+  - Files: `App.vue`, `Modal.vue`, `style.css`, `app.spec.ts`, `modal.spec.ts`.
+
+- [x] **Task: Sincronizar README y specs**
+  - **Hecho:** README documenta el flyout, el footer de navegación, la ausencia de resize/arrastre y la validación con build de producción.
+  - Acceptance: README describe el flyout, la ausencia de resize/arrastre y la validación con build de producción.
+  - Verify: revisión cruzada README ↔ specs ↔ tasks.
+  - Files: `README.md`, `specs/SPEC-shell.md`, `specs/SPEC-ui-ux.md`, `tasks/plan.md`, `tasks/todo.md`.
+
+---
+
+## Fase 12 — cierre estable y tooltip de consumo
+
+> Specs: `SPEC-shell.md` (Iteración 6). Backend `shell`; sin dependencias nuevas.
+
+- [x] **Task: Guarda de blur post-apertura**
+  - **Hecho:** `ShowAt` registra apertura; `HideFromBlur` espera la guarda y comprueba foreground antes de cerrar; timers cancelados al mostrar/ocultar.
+  - Acceptance: un blur transitorio al abrir no cierra el panel; un blur real sí lo cierra; no quedan timers obsoletos.
+  - Verify: `go test ./internal/shell/...` con reloj/timers inyectados.
+  - Files: `internal/shell/window.go`, `window_test.go`.
+
+- [x] **Task: Detección y refuerzo de foco**
+  - **Hecho:** `FlyoutForeground` compara `GetForegroundWindow` con el HWND; `FocusFlyout` refuerza la activación si hace falta.
+  - Acceptance: el panel queda en primer plano tras el clic del tray y recibe teclado/`Esc`.
+  - Verify: `go test ./...` + prueba manual con build de producción.
+  - Files: `internal/shell/flyout_windows.go`, `flyout_other.go`, `app.go`.
+
+- [x] **Task: Tooltip nativo con consumo**
+  - **Hecho:** `UsageFetch` actualiza el tooltip tras una lectura correcta; formato `OpenCode · 5h 18% · 7d 42% · 30d 27%`; se conserva el anterior si falla.
+  - Acceptance: el hover sobre el icono muestra los tres porcentajes; no se rompe si aún no hay datos.
+  - Verify: `go test ./...` (formateo y actualización) + prueba manual.
+  - Files: `app.go`, `app_test.go`, `internal/shell/tray.go`, `tray_test.go`.
+
+- [x] **Task: Sincronizar docs y validar**
+  - **Hecho:** spec Iteración 6, plan/todo Fase 12 y README sincronizados; suite completa y build de producción.
+  - Acceptance: documentación coherente; tests y `wails build` en verde.
+  - Verify: `go test ./...`, `pnpm test`, `pnpm build`, `wails build`.
+  - Files: `README.md`, `specs/SPEC-shell.md`, `tasks/plan.md`, `tasks/todo.md`.
+
+---
+
+## Fase 13 — pestañas estables, acciones compactas y scroll sin saltos
+
+> Specs: `SPEC-ui-ux.md` (Iteración 7). Solo frontend; sin dependencias nuevas.
+
+- [x] **Task: Pestañas con métricas fijas**
+  - **Hecho:** altura fija de 52 px, peso constante y slot de icono fijo.
+  - Acceptance: ninguna pestaña cambia de tamaño ni posición al activarse o cambiar de idioma.
+  - Verify: revisión manual a 380 px + `pnpm build`.
+  - Files: `frontend/src/style.css`.
+
+- [x] **Task: Estado y URI juntos en Servicio**
+  - **Hecho:** la URI se mueve a `.status-row`, alineada a la derecha del estado; el backend descarta `stopped` como URL.
+  - Acceptance: estado y URI comparten fila cuando caben; un servicio detenido no muestra `stopped` como URI.
+  - Verify: `servicio.spec.ts`, `servicecontrol/service_test.go`.
+  - Files: `frontend/src/components/Servicio.vue`, `frontend/src/style.css`, `internal/servicecontrol/status.go`.
+
+- [x] **Task: Etiquetas cortas y grids de acciones**
+  - **Hecho:** servicio en 2×2 (`Iniciar`, `Detener`, `Forzar`, `Refrescar`) y configuración en 3 columnas (`Editor`, `Carpeta`, `JSON`), sin salto de texto.
+  - Acceptance: cada etiqueta queda en una línea y las filas son estables en ES/EN.
+  - Verify: `servicio.spec.ts`.
+  - Files: `Servicio.vue`, `frontend/src/i18n/es.json`, `frontend/src/i18n/en.json`, `frontend/src/style.css`.
+
+- [x] **Task: Tooltips en botones icono**
+  - **Hecho:** `title` en botones cortos, cerrar modal y mostrar/ocultar contraseña; `aria-label` se mantiene.
+  - Acceptance: todo botón solo-icono muestra tooltip.
+  - Verify: `modal.spec.ts`, `acceso-web.spec.ts`.
+  - Files: `Modal.vue`, `AccesoWeb.vue`, `Servicio.vue`.
+
+- [x] **Task: Scroll sin reflujo**
+  - **Hecho:** `scrollbar-gutter: stable`, barra fina y `overflow-x: hidden`.
+  - Acceptance: el ancho del contenido no cambia al aparecer el scroll vertical.
+  - Verify: revisión manual con secciones cortas y largas.
+  - Files: `frontend/src/style.css`.
+
+- [x] **Task: Sincronizar docs y validar**
+  - **Hecho:** spec, plan, todo, design-system y README sincronizados; suite y build completos.
+  - Acceptance: documentación coherente; tests y `wails build` en verde.
+  - Verify: `pnpm test`, `pnpm build`, `go test ./...`, `wails build`.
+  - Files: `README.md`, `design-system/opencode-tray/MASTER.md`, `specs/SPEC-ui-ux.md`, `tasks/plan.md`, `tasks/todo.md`.
+
+---
+
+## Fase 14 — alto fijo y fila de servicio unificada
+
+> Specs: `SPEC-shell.md` (Iteración 7) y `SPEC-ui-ux.md` (Iteración 8). Sin dependencias nuevas.
+
+- [x] **Task: Alto fijo del flyout**
+  - **Hecho:** backend inicializa en `FlyoutMaxHeight` (600 px); se elimina la medición de contenido y el `ResizeObserver` del frontend. Verificado en producción: 475×750 físicos a 125 % (380×600 lógicos).
+  - Acceptance: las 4 pestañas mantienen el mismo alto; solo el contenido hace scroll.
+  - Verify: `window_test.go`, `app.spec.ts`, revisión manual.
+  - Files: `main.go`, `internal/shell/window.go`, `internal/shell/window_test.go`, `frontend/src/App.vue`, `frontend/src/app.spec.ts`.
+
+- [x] **Task: Estado y URI en Resumen**
+  - **Hecho:** la URI se mueve dentro de `.status-row`, igual que en Servicio; test dedicado de estructura.
+  - Acceptance: estado a la izquierda y URI con puerto a la derecha en la misma fila.
+  - Verify: `resumen.spec.ts` + revisión visual.
+  - Files: `frontend/src/components/Resumen.vue`, `frontend/src/components/resumen.spec.ts`.
+
+- [x] **Task: Sincronizar docs y validar**
+  - **Hecho:** specs, plan, todo, design-system y README sincronizados; suite completa y build de producción en verde.
+  - Acceptance: documentación coherente; tests y `wails build` en verde.
+  - Verify: `pnpm test`, `pnpm build`, `go test ./...`, `wails build`.
+  - Files: `README.md`, `design-system/opencode-tray/MASTER.md`, `specs/SPEC-shell.md`, `specs/SPEC-ui-ux.md`, `tasks/plan.md`, `tasks/todo.md`.

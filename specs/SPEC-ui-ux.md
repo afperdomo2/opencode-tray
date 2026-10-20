@@ -218,3 +218,175 @@ Eliminar el bloqueo de render por una única carga global: cada widget debe most
 - [ ] Los errores se muestran en la card afectada, sin ocultar las demás.
 - [ ] Los skeletons son accesibles (no anuncian contenido decorativo; sí el estado de carga).
 - [ ] No hay dependencias nuevas.
+
+---
+
+# Iteración 5 — Flyout: navegación inferior y alto según contenido
+
+> Traza al module id `ui-ux`. Afecta a shell, navegación y modal. Sustituye el criterio de ventana redimensionable de la Iteración 3.
+
+## Objective
+
+Aprovechar el nuevo flyout anclado: la navegación pasa a un footer fijo y el contenido define el alto de la ventana sin saltos.
+
+## Cambios
+
+1. **Navegación inferior.**
+   - El `<nav>` se mueve después de `<main>` en el DOM.
+   - Footer fijo con 4 pestañas en columnas iguales (icono arriba, texto abajo).
+   - Altura del footer ~52 px; borde superior en lugar de inferior.
+   - El contenido (`.app-content`) es la única zona con scroll.
+   - Se elimina la regla responsive que partía el nav en 2 columnas.
+
+2. **Alto según contenido.**
+   - `App.vue` mide el contenido con `ResizeObserver` y solicita el alto al backend (`SetFlyoutHeight`).
+   - Debounce de ~120 ms para no redimensionar durante cada actualización asíncrona.
+   - Rango 320–600 px; la ventana crece hacia arriba.
+
+3. **Cierre y foco.**
+   - `Escape` oculta el panel (`HideWindow`).
+   - `window.blur` oculta el panel (`WindowBlurred`) con guarda anti-carrera en el backend.
+   - `Modal.vue` detiene la propagación de `Escape` para que cerrar un modal no cierre el panel.
+
+## Testing Strategy
+
+- **Vitest**: el nav está después de `<main>`; cambiar de sección llama a `SetFlyoutHeight`; `Escape` llama a `HideWindow`; `blur` llama a `WindowBlurred`; `Escape` en un modal no cierra el panel.
+- **Manual**: redimensionar contenido entre secciones, abrir/cerrar modales y comprobar que el footer queda fijo.
+
+## Success Criteria
+
+- [ ] El nav está abajo y permanece visible mientras el contenido hace scroll.
+- [ ] El panel cambia de alto según la sección/contenido sin dejar huecos grandes.
+- [ ] Cerrar un modal con `Escape` no cierra el panel.
+- [ ] Tests Vitest en verde; `pnpm build` OK.
+
+---
+
+# Iteración 5 — Caché de datos y reintento de token
+
+> Traza a `usage`, `resumen` y `shell` (Ajustes). Frontend con caché nativo; backend solo para leer/reintentar el token.
+
+## Objective
+
+Evitar skeletons innecesarios y repetir peticiones cuando los datos ya están en memoria, y permitir recuperar el token vigente de OpenCode sin obligar al usuario a pegarlo.
+
+## Decisiones
+
+1. **Caché nativo**, no TanStack Query: `frontend/src/lib/query.ts` con estado compartido por key, `staleTime` 60 s, dedupe de peticiones en vuelo, datos previos conservados y skeleton **solo** sin datos.
+2. **Polling** según `RefreshMin` (Ajustes), pausado con la ventana oculta; refetch al recuperar foco si está stale.
+3. **OpenCode primero**: export v2 cacheado en memoria → `auth.json` (`opencode`/`opencode-go`) → token manual DPAPI.
+4. **Reintento** automático una vez ante `USAGE_NO_TOKEN`/`USAGE_INVALID_TOKEN`; después botón "Reintentar leyendo de OpenCode" en Resumen y Ajustes.
+5. **Datos previos**: durante un refresco o error nunca se reemplazan los datos por un skeleton; se muestra un indicador discreto.
+
+## Success Criteria
+
+- [ ] Resumen → otra sección → Resumen en <60 s no muestra skeleton ni repite la petición.
+- [ ] Un refresco en segundo plano conserva las barras y muestra "Actualizando…".
+- [ ] Token ausente/inválido: reintento automático una vez y botón manual; nunca un bucle.
+- [ ] La API key manual es opcional y se guarda cifrada.
+- [ ] El intervalo de refresco configurado se aplica al polling.
+- [ ] Tests, `pnpm build` y `go test ./...` en verde.
+
+---
+
+# Iteración 7 — Pestañas estables, acciones compactas y scroll sin saltos
+
+> Traza al module id `ui-ux`. Solo frontend; sin backend, dependencias ni cambios de estructura.
+
+## Objective
+
+Eliminar los saltos visuales del panel, mostrar el estado y la URI del servicio juntos y dejar las acciones de Servicio en etiquetas cortas de una sola línea, con tooltips donde el texto no alcanza.
+
+## Diagnóstico
+
+- Las 4 columnas del nav ya son iguales, pero `.nav-btn.active` cambia el peso de fuente y altera el ancho del texto, moviendo el contenido de la pestaña.
+- La URL del servicio vive en un párrafo separado debajo del estado.
+- Las etiquetas largas (`Forzar detener`, `Configuración (JSON)`) y `.actions` con `flex-wrap` producen saltos internos o filas irregulares.
+- Los botones solo-icono de `Modal` y `Acceso web` tienen `aria-label`, pero no tooltip.
+- `.app-content` con `overflow: auto` resta ancho al aparecer la barra vertical, reacomodando las cards.
+
+## Cambios
+
+1. **Pestañas con métricas fijas.**
+   - Altura fija de 52 px y 4 columnas iguales.
+   - Peso de fuente constante (500) en todos los estados; el activo se distingue por fondo y color.
+   - Slot de icono fijo de 16×16 y texto sin salto.
+
+2. **Estado y URI en Servicio.**
+   - La URI se muestra dentro de `.status-row`, junto al estado y alineada a la derecha cuando cabe.
+   - Tipografía mono y `margin-left: auto`; si no cabe, baja de línea sin romper el estado.
+
+3. **Etiquetas cortas + layout de acciones.**
+   - Servicio: `Iniciar`, `Detener`, `Forzar`, `Refrescar`; grid 2×2.
+   - Configuración: `Editor`, `Carpeta`, `JSON`; grid de 3 columnas.
+   - Cada botón mantiene icono de 14 px, `width: 100%` y `white-space: nowrap`.
+
+4. **Tooltips nativos.**
+   - `title` con la descripción completa en los botones cortos.
+   - `title` + `aria-label` en todos los botones solo-icono (cerrar modal, mostrar/ocultar contraseña).
+
+5. **Scroll estable.**
+   - `scrollbar-gutter: stable` en `.app-content` para reservar siempre el mismo ancho.
+   - Barra fina y discreta con `scrollbar-width` y `::-webkit-scrollbar`.
+   - `overflow-x: hidden`.
+
+## Decisiones cerradas
+
+1. **Botones**: texto corto + icono (no solo icono).
+2. **Estado/URI**: mismo renglón, estado primero y URI a la derecha.
+3. **Scroll**: espacio reservado con barra fina; no barra permanente ni scroll superpuesto.
+4. **Tooltips**: nativos (`title`), sin componente ni dependencia nueva.
+
+## Testing Strategy
+
+- **Vitest**: URL dentro de `.status-row`; etiquetas cortas y `title` en Servicio; `title` en botones icono de `Modal` y `Acceso web`.
+- **Manual**: a 380 px y en ES/EN, cambiar de pestaña sin movimiento, abrir secciones con y sin scroll y comprobar que el ancho no cambia.
+- **Build**: `pnpm test`, `pnpm build`, `go test ./...` y `wails build`.
+
+## Success Criteria
+
+- [ ] Las 4 pestañas mantienen tamaño y posición al cambiar de sección o idioma.
+- [ ] `Servicio` muestra estado y URI con puerto en la misma fila.
+- [ ] Los botones usan etiquetas cortas en una línea; servicio en 2×2 y configuración en 3 columnas.
+- [ ] Todo botón solo-icono tiene `title` y `aria-label`.
+- [ ] La aparición del scroll vertical no cambia el ancho del contenido.
+- [ ] Tests, `pnpm build`, `go test ./...` y `wails build` en verde.
+
+---
+
+# Iteración 8 — Alto fijo y fila de servicio en Resumen
+
+## Diagnóstico
+
+- El alto del flyout seguía calculándose por pestaña: al abrir Ajustes la ventana crecía y al volver a una sección corta se encogía.
+- En Resumen, la URI del servicio seguía en un párrafo separado debajo del estado, por lo que aparecía en otra línea en vez de alinearse a la derecha como en Servicio.
+
+## Cambios
+
+1. **Alto fijo en todas las pestañas.**
+   - El backend usa `FlyoutMaxHeight` (600 px) como alto fijo.
+   - Se elimina la medición de contenido y el `ResizeObserver` del frontend.
+   - El scroll queda exclusivamente en `.app-content`.
+
+2. **Estado y URI unificados.**
+   - Resumen usa la misma estructura que Servicio: `.status-row` con punto, estado y `.url`.
+   - La URI se alinea a la derecha (`margin-left: auto`) y solo baja de línea si el ancho es insuficiente.
+
+## Decisiones cerradas
+
+1. **Alto**: fijo en 600 px, igual que la pestaña más alta (Ajustes); no configurable.
+2. **Resumen/Servicio**: mismo componente visual de fila para estado y URI.
+
+## Testing Strategy
+
+- **Vitest**: App no llama a `SetFlyoutHeight` al cambiar de sección; Resumen coloca `.url` dentro de `.status-row`.
+- **Go**: el controlador inicia con `FlyoutMaxHeight`.
+- **Manual**: navegar por las 4 pestañas sin cambios de alto; comprobar estado+URI en Resumen.
+- **Build**: `go test ./...`, `pnpm test`, `pnpm build` y `wails build`.
+
+## Success Criteria
+
+- [ ] Las 4 pestañas comparten el mismo alto de ventana.
+- [ ] Resumen muestra estado y URI en la misma fila, con la URI a la derecha.
+- [ ] El contenido largo hace scroll sin mover la nav inferior.
+- [ ] Tests y build en verde.

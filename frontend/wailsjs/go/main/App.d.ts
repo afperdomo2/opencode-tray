@@ -4,6 +4,7 @@ import {configviewer} from '../models';
 import {shell} from '../models';
 import {main} from '../models';
 import {usage} from '../models';
+import {webaccess} from '../models';
 
 export function ConfigJSON():Promise<string>;
 
@@ -57,7 +58,9 @@ export function WebAccessChangePassword(arg1:string):Promise<void>;
 
 export function WebAccessCurrentPassword():Promise<string>;
 
-export function WebAccessURLs():Promise<Array<string>>;
+export function WebAccessOpenURL(arg1:string):Promise<void>;
+
+export function WebAccessState():Promise<webaccess.State>;
 
 export function WebAccessUsername():Promise<string>;
 

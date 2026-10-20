@@ -11,6 +11,7 @@ wails dev                 # desarrollo (hot reload)
 wails build               # build (.exe portable)
 go test ./...             # tests backend
 cd frontend && pnpm test   # tests frontend (Vitest)
+powershell -ExecutionPolicy Bypass -File scripts/build-installer.ps1  # portable + instalador Inno Setup
 ```
 
 ## Estructura
@@ -20,6 +21,8 @@ cd frontend && pnpm test   # tests frontend (Vitest)
 - `design-system/` — sistema de diseño generado con la skill `ui-ux-pro-max`.
 - `internal/<módulo>` — backend Go: `shell`, `servicecontrol`, `webaccess`, `usage`, `configviewer`, `notifications`.
 - `frontend/` — UI Vue 3.
+- `build/windows/installer/opencode-tray.iss` — definición del instalador Inno Setup (se trackea).
+- `scripts/build-installer.ps1` — build portable + instalador (se trackea).
 
 ## Flujo de trabajo (SDD)
 
@@ -28,6 +31,8 @@ Las specs son la fuente de verdad. Ante un cambio de requisitos, alcance o arqui
 ## Notas técnicas (gotchas)
 
 - **`wails dev` no sirve para validar frontend ↔ backend**: en modo dev el puente `window.go` puede quedar sin definir (quirk del proxy de Vite de Wails), haciendo fallar todas las llamadas al backend. **Validar siempre con el build de producción** (`wails build` → `build/bin/opencode-tray.exe`). Ver README → "Limitaciones conocidas".
+- **El tray se registra en `main`, antes de `wails.Run`**: Wails v2.16 ejecuta `OnStartup` en otra goroutine. Si `energye/systray` se registra allí, la ventana `SystrayClass` queda en un hilo sin bucle de mensajes: el icono aparece pero el clic izquierdo y el menú contextual no responden. `app.initTray(trayIcon)` debe seguir en `main`.
+- **Instalador**: `build/windows/installer/opencode-tray.iss` y `scripts/build-installer.ps1` se trackean; `build/bin/` no. Para compilar el instalador se requiere **Inno Setup 6.3+** (`ISCC.exe`). Ver README → "Build y despliegue (Windows)".
 
 ## Reglas
 

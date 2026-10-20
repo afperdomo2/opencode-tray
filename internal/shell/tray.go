@@ -23,6 +23,11 @@ type TrayHandler struct {
 
 // NewTrayHandler registra el tray con un bucle externo (integrable con Wails).
 // Llamar Start() cuando la app haya arrancado y End() al cerrar.
+//
+// Importante: debe llamarse desde el hilo principal antes de wails.Run. Wails
+// ejecuta OnStartup en otra goroutine; si el tray se registra allí, la ventana
+// de la bandeja queda en un hilo sin bucle de mensajes y los clics y el menú
+// contextual dejan de funcionar.
 func NewTrayHandler(opts TrayOptions) *TrayHandler {
 	h := &TrayHandler{opts: opts, setTooltip: systray.SetTooltip}
 	start, end := systray.RunWithExternalLoop(h.onReady, func() {})

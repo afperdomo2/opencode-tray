@@ -65,16 +65,40 @@
     "local": "Local",
     "network": "Red (por IP)",
     "remote": "Remoto (túnel)",
+    "active": "Activo",
+    "modeHint": {
+      "local": "Solo esta PC (127.0.0.1)",
+      "network": "Tu red local (0.0.0.0): accesible por IP",
+      "remote": "Internet vía OpenTunnel: expone el servidor"
+    },
+    "networkWarning": "Cualquiera en tu red local puede intentar conectarse. Usa una contraseña fuerte.",
+    "remoteWarning": "El servidor está expuesto a Internet vía OpenTunnel. El acceso requiere contraseña.",
     "urls": "URLs de acceso",
-    "noUrls": "Sin IPs de red detectadas.",
+    "noUrls": "Sin URLs disponibles. Inicia el servicio.",
+    "kind": {
+      "local": "Local",
+      "lan": "LAN",
+      "remote": "Remoto"
+    },
+    "open": "Abrir en el navegador",
+    "copy": "Copiar URL",
+    "copied": "Copiada",
+    "copyError": "No se pudo copiar la URL.",
+    "startToOpen": "Inicia el servicio para abrir",
+    "stoppedHint": "El servicio está detenido; las URLs no responderán hasta que lo inicies.",
     "username": "Usuario",
     "password": "Contraseña",
     "changePassword": "Cambiar contraseña",
     "newPassword": "Nueva contraseña",
     "save": "Guardar",
     "saved": "Contraseña actualizada",
+    "sessionHint": "Cambiar la contraseña cierra las sesiones web activas (duran 30 días).",
     "show": "Mostrar",
-    "hide": "Ocultar"
+    "hide": "Ocultar",
+    "remoteConfirmTitle": "Activar acceso remoto",
+    "remoteConfirmBody": "Esto expone tu servidor OpenCode a Internet a través de OpenTunnel.",
+    "remoteConfirmHint": "El acceso sigue protegido por la contraseña del servicio. Puedes desactivarlo volviendo a Local o Red.",
+    "remoteConfirmEnable": "Activar remoto"
   },
   "config": {
     "title": "Configuración",
@@ -101,6 +125,7 @@
     "language": "Idioma",
     "general": "General",
     "close": "Cerrar",
+    "cancel": "Cancelar",
     "autoStart": "Iniciar con Windows"
   }
 }

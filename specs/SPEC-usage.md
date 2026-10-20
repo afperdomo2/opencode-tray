@@ -185,3 +185,69 @@ frontend/src/
 1. ~~Ruta exacta de `auth.json` en Windows~~: resuelta, `opencode debug paths data` → `~/.local/share/opencode`; se añaden fallbacks `%LOCALAPPDATA%`/`%APPDATA%`.
 2. ~~Frecuencia de refresco~~: `RefreshMin`, por defecto 15 min, configurable en Ajustes.
 3. **Cifrado del token manual**: DPAPI implementado.
+
+---
+
+# Iteración 8 — Humanizador del reinicio y caché compartida
+
+## Objective
+
+Exponer un texto de reinicio legible para humanos y compartir la caché de consumo entre el panel y el watcher del tray.
+
+## Contrato añadido
+
+```go
+type Icons struct { Clock, Calendar, Reset, Warning string }
+var EmojiIcons = Icons{...}
+var SafeIcons  = Icons{...}
+
+type TooltipOptions struct {
+    Language string
+    Icons    Icons
+    Now      time.Time
+}
+
+func Tooltip(u Usage, opts TooltipOptions) string
+func HumanReset(w Window, now time.Time, lang string) string
+func BatteryBar(percent float64) string
+func TruncateUTF16(s string, max int) string
+```
+
+Reglas de `HumanReset`:
+
+| Caso | Texto |
+|---|---|
+| `!HasReset` | `sin reinicio` / `no reset` |
+| `resetsAt <= now` | `ahora` / `now` |
+| Mismo día, < 1 min | `en <1 min` / `in <1 min` |
+| Mismo día, < 1 h | `en N min` / `in N min` |
+| Mismo día | `en N h` / `in N h` |
+| Mañana | `mañana a las HH:MM` / `tomorrow at h:MM PM` |
+| 2+ días | `el D mmm AA` / `Mmm D, AAAA` |
+
+- `now` y la zona horaria se inyectan; `resetsAt` se convierte a la zona local.
+- `BatteryBar`: 5 celdas, `floor(percent/20)`, tope 0–100.
+- `Tooltip`: `OpenCode · Mensual <barra> N% · <icono> <reset>` y truncado a 127 UTF-16.
+
+## Caché
+
+- `App` mantiene `usageCache`, `usageAt` y `usageOK` bajo mutex.
+- `UsageFetch` devuelve caché si tiene menos de 60 s.
+- `backgroundRefresh` hace fetch solo si pasó `RefreshMin` (mínimo 1 min).
+- `ReloadToken`, `SetManualToken` y `ClearManualToken` invalidan la caché.
+- Un error no borra el último consumo cacheado (el tooltip conserva el dato anterior).
+
+## Testing Strategy
+
+- Tabla de `HumanReset` con reloj y zona fijos, en español e inglés.
+- `BatteryBar` en 0, 19, 20, 42, 99, 100.
+- `TruncateUTF16` con emoji y límite 127.
+- `Tooltip` completo en ambos idiomas y con iconos seguros.
+
+## Success Criteria
+
+- [ ] El tooltip usa el idioma configurado y la hora local.
+- [ ] Nunca supera el límite de `szTip`.
+- [ ] El panel y el watcher comparten la misma caché.
+- [ ] Tests en verde.
+

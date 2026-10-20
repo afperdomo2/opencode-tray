@@ -9,5 +9,12 @@
   "author": {
     "name": "Andrés Felipe Perdomo",
     "email": "alvarado0925@gmail.com"
+  },
+  "Info": {
+    "companyName": "Andrés Felipe Perdomo",
+    "productName": "OpenCode Tray",
+    "productVersion": "1.3.0",
+    "copyright": "Copyright © 2026 Andrés Felipe Perdomo",
+    "comments": "Tray app for OpenCode"
   }
 }

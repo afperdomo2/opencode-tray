@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
-	"math"
 	"os"
 	"strings"
+	"sync"
+	"time"
 
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 
@@ -30,6 +30,21 @@ type App struct {
 	webaccess *webaccess.Service
 	cfgviewer *configviewer.Service
 	notifier  *notifications.Service
+
+	// Caché del consumo compartida entre el panel y el tooltip del tray.
+	usageMu    sync.Mutex
+	usageCache usage.Usage
+	usageAt    time.Time
+	usageOK    bool
+
+	// Último intento (éxito o error) para no martillar la API en cada tick.
+	usageAttemptAt time.Time
+
+	// Watcher que mantiene el tooltip al día aunque el panel nunca se abra.
+	watcherStop chan struct{}
+
+	// Reloj inyectable para tests del tooltip.
+	now func() time.Time
 }
 
 // NewApp crea la App con sus dependencias del backend.
@@ -51,6 +66,7 @@ func NewApp() *App {
 		webaccess: webaccess.New(svc),
 		cfgviewer: configviewer.New(),
 		notifier:  notifications.New(),
+		now:       time.Now,
 	}
 	app.loadManualUsageToken()
 	return app
@@ -70,7 +86,34 @@ func (a *App) loadManualUsageToken() {
 	a.usage.SetManualToken(tok)
 }
 
-// startup se ejecuta al arrancar: configura la ventana y el tray.
+// initTray registra el icono y el menú en el hilo principal. Debe llamarse
+// antes de wails.Run para que el bucle de mensajes de Wails procese los clics.
+func (a *App) initTray(icon []byte) {
+	a.tray = shell.NewTrayHandler(shell.TrayOptions{
+		Icon:    icon,
+		Tooltip: "OpenCode Tray",
+		OnClick: func() {
+			if a.win != nil {
+				a.win.ToggleAt(shell.CursorPosition())
+			}
+		},
+		OnShow: func() {
+			if a.win != nil {
+				a.win.ShowAt(shell.CursorPosition())
+			}
+		},
+		OnQuit: func() {
+			if a.ctx != nil {
+				wailsruntime.Quit(a.ctx)
+				return
+			}
+			os.Exit(0)
+		},
+	})
+	a.tray.Start()
+}
+
+// startup se ejecuta al arrancar: configura la ventana y el watcher.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 
@@ -86,20 +129,15 @@ func (a *App) startup(ctx context.Context) {
 	// menú contextual). El notifier conserva su sender no-op; la lógica de
 	// decisión queda probada y lista para reactivarse por una vía segura.
 
-	// Arrancar el tray: clic izquierdo alterna el panel anclado al icono;
-	// "Mostrar panel" siempre lo abre; "Salir" cierra la app.
-	a.tray = shell.NewTrayHandler(shell.TrayOptions{
-		Icon:    trayIcon,
-		Tooltip: "OpenCode Tray",
-		OnClick: func() { a.win.ToggleAt(shell.CursorPosition()) },
-		OnShow:  func() { a.win.ShowAt(shell.CursorPosition()) },
-		OnQuit:  func() { wailsruntime.Quit(ctx) },
-	})
-	a.tray.Start()
+	// Aunque el panel no se abra, el tooltip debe mostrar el consumo y la
+	// cuenta atrás del reinicio. Arranca tras el tray para que SetTooltip
+	// encuentre el icono listo.
+	a.startUsageWatcher()
 }
 
 // shutdown libera el icono del tray al salir.
 func (a *App) shutdown(ctx context.Context) {
+	a.stopUsageWatcher()
 	if a.tray != nil {
 		a.tray.End()
 	}
@@ -152,7 +190,14 @@ func (a *App) SetRefreshMin(min int) error {
 func (a *App) SetLanguage(lang string) error {
 	st, _ := a.settings.Load()
 	st.Language = lang
-	return a.settings.Save(st)
+	if err := a.settings.Save(st); err != nil {
+		return err
+	}
+	// El tooltip es nativo y también debe cambiar de idioma al instante.
+	a.usageMu.Lock()
+	a.applyTooltipLocked()
+	a.usageMu.Unlock()
+	return nil
 }
 
 // SetAutoStart activa o desactiva el arranque con Windows (registro + ajustes).
@@ -219,23 +264,142 @@ func (a *App) ServiceForceStop() error { return a.service.ForceStop() }
 
 // --- Consumo (usage) ---
 
+const usageCacheTTL = 60 * time.Second
+
 // UsageFetch consulta el consumo de OpenCode Go (rolling/weekly/monthly).
+// Comparte caché con el watcher del tray para no duplicar peticiones.
 func (a *App) UsageFetch() (usage.Usage, error) {
-	u, err := a.usage.Fetch()
-	if err == nil && a.tray != nil {
-		a.tray.SetTooltip(usageTooltip(u))
+	a.usageMu.Lock()
+	defer a.usageMu.Unlock()
+
+	if a.usageOK && a.clock().Sub(a.usageAt) < usageCacheTTL {
+		a.applyTooltipLocked()
+		return a.usageCache, nil
 	}
-	return u, err
+	return a.fetchUsageLocked(false)
 }
 
-// usageTooltip resume los tres porcentajes para el tooltip nativo del tray.
-func usageTooltip(u usage.Usage) string {
-	return fmt.Sprintf(
-		"OpenCode · 5h %d%% · 7d %d%% · 30d %d%%",
-		int(math.Round(u.Rolling.Percent)),
-		int(math.Round(u.Weekly.Percent)),
-		int(math.Round(u.Monthly.Percent)),
-	)
+// startUsageWatcher arranca el refresco periódico del tooltip.
+func (a *App) startUsageWatcher() {
+	if a.watcherStop != nil {
+		return
+	}
+	stop := make(chan struct{})
+	a.watcherStop = stop
+	go a.usageLoop(stop)
+}
+
+// stopUsageWatcher detiene el refresco periódico (idempotente).
+func (a *App) stopUsageWatcher() {
+	if a.watcherStop == nil {
+		return
+	}
+	close(a.watcherStop)
+	a.watcherStop = nil
+}
+
+// usageLoop hace una lectura inicial tras el arranque y luego revisa cada
+// minuto: recalcula la cuenta atrás y hace fetch cuando toca por RefreshMin.
+func (a *App) usageLoop(stop <-chan struct{}) {
+	timer := time.NewTimer(2 * time.Second)
+	defer timer.Stop()
+	select {
+	case <-stop:
+		return
+	case <-timer.C:
+	}
+
+	a.backgroundRefresh(true)
+
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-stop:
+			return
+		case <-ticker.C:
+			a.backgroundRefresh(false)
+		}
+	}
+}
+
+// backgroundRefresh actualiza el tooltip con los datos cacheados y hace fetch
+// solo cuando ha pasado el intervalo configurado.
+func (a *App) backgroundRefresh(retryToken bool) {
+	a.usageMu.Lock()
+	defer a.usageMu.Unlock()
+
+	st, _ := a.settings.Load()
+	refresh := time.Duration(st.RefreshMin) * time.Minute
+	if refresh < time.Minute {
+		refresh = time.Minute
+	}
+	if a.usageOK && a.clock().Sub(a.usageAt) < refresh {
+		a.applyTooltipLocked()
+		return
+	}
+	if !a.usageAttemptAt.IsZero() && a.clock().Sub(a.usageAttemptAt) < refresh {
+		a.applyTooltipLocked()
+		return
+	}
+	_, _ = a.fetchUsageLocked(retryToken)
+}
+
+// fetchUsageLocked consulta el consumo y actualiza caché y tooltip. Si el
+// llamador lo permite, reintenta una vez releyendo el token de OpenCode.
+func (a *App) fetchUsageLocked(retryToken bool) (usage.Usage, error) {
+	defer func() { a.usageAttemptAt = a.clock() }()
+
+	u, err := a.usage.Fetch()
+	if err != nil && retryToken && (errors.Is(err, usage.ErrNoToken) || errors.Is(err, usage.ErrInvalidToken)) {
+		if _, reloadErr := a.usage.ReloadToken(a.context()); reloadErr == nil {
+			u, err = a.usage.Fetch()
+		}
+	}
+	if err != nil {
+		// Sin datos nuevos se conserva el tooltip anterior.
+		return usage.Usage{}, err
+	}
+
+	a.usageCache = u
+	a.usageAt = a.clock()
+	a.usageOK = true
+	a.applyTooltipLocked()
+	return u, nil
+}
+
+// applyTooltipLocked pinta el tooltip con el último consumo cacheado.
+func (a *App) applyTooltipLocked() {
+	if a.tray == nil || !a.usageOK {
+		return
+	}
+	st, _ := a.settings.Load()
+	a.tray.SetTooltip(usageTooltip(a.usageCache, st.Language, a.clock()))
+}
+
+// usageTooltip construye el texto del tooltip (barra + reinicio humanizado).
+func usageTooltip(u usage.Usage, lang string, now time.Time) string {
+	return usage.Tooltip(u, usage.TooltipOptions{
+		Language: lang,
+		Icons:    usage.EmojiIcons,
+		Now:      now,
+	})
+}
+
+// clock devuelve el reloj de la app (inyectable en tests).
+func (a *App) clock() time.Time {
+	if a.now == nil {
+		return time.Now()
+	}
+	return a.now()
+}
+
+// context devuelve el contexto de Wails o uno de fondo si aún no arrancó.
+func (a *App) context() context.Context {
+	if a.ctx == nil {
+		return context.Background()
+	}
+	return a.ctx
 }
 
 // UsageTokenStatus indica de dónde saldría el token (sin ejecutar red).
@@ -243,11 +407,13 @@ func (a *App) UsageTokenStatus() usage.TokenStatus { return a.usage.TokenStatus(
 
 // UsageReloadToken invalida el caché y relee el token vigente desde OpenCode.
 func (a *App) UsageReloadToken() (usage.TokenStatus, error) {
-	ctx := a.ctx
-	if ctx == nil {
-		ctx = context.Background()
+	a.usageMu.Lock()
+	defer a.usageMu.Unlock()
+	status, err := a.usage.ReloadToken(a.context())
+	if err == nil {
+		a.invalidateUsageLocked()
 	}
-	return a.usage.ReloadToken(ctx)
+	return status, err
 }
 
 // UsageSetManualToken valida, fija y persiste cifrado el token manual.
@@ -256,6 +422,9 @@ func (a *App) UsageSetManualToken(tok string) error {
 	if tok == "" {
 		return errors.New("la API key no puede estar vacía")
 	}
+	a.usageMu.Lock()
+	defer a.usageMu.Unlock()
+
 	err := a.usage.ValidateToken(tok)
 	if err != nil && (errors.Is(err, usage.ErrInvalidToken) || errors.Is(err, usage.ErrNoEntitlement)) {
 		return err
@@ -271,18 +440,30 @@ func (a *App) UsageSetManualToken(tok string) error {
 		return err
 	}
 	a.usage.SetManualToken(tok)
+	a.invalidateUsageLocked()
 	return nil
 }
 
 // UsageClearManualToken elimina el token manual (en disco y en memoria).
 func (a *App) UsageClearManualToken() error {
+	a.usageMu.Lock()
+	defer a.usageMu.Unlock()
+
 	st, _ := a.settings.Load()
 	st.UsageToken = ""
 	if err := a.settings.Save(st); err != nil {
 		return err
 	}
 	a.usage.ClearManualToken()
+	a.invalidateUsageLocked()
 	return nil
+}
+
+// invalidateUsageLocked fuerza el próximo fetch tras cambiar el token.
+func (a *App) invalidateUsageLocked() {
+	a.usageAt = time.Time{}
+	a.usageOK = false
+	a.usageAttemptAt = time.Time{}
 }
 
 // --- Acceso web (web-access) ---
@@ -292,8 +473,24 @@ func (a *App) WebAccessApplyMode(mode string) error {
 	return a.webaccess.ApplyMode(webaccess.Mode(mode))
 }
 
-// WebAccessURLs devuelve las URLs de acceso (IPs LAN + puerto).
-func (a *App) WebAccessURLs() ([]string, error) { return a.webaccess.ComputeURLs() }
+// WebAccessState devuelve el modo activo, el estado del servicio y las URLs.
+func (a *App) WebAccessState() (webaccess.State, error) { return a.webaccess.State() }
+
+// WebAccessOpenURL abre una URL de acceso validada en el navegador del sistema.
+func (a *App) WebAccessOpenURL(raw string) error {
+	ok, err := a.webaccess.IsAccessURL(raw)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.New("URL de acceso no válida")
+	}
+	if a.ctx == nil {
+		return errors.New("la app aún no está inicializada")
+	}
+	wailsruntime.BrowserOpenURL(a.ctx, raw)
+	return nil
+}
 
 // WebAccessUsername devuelve el usuario del servidor (opencode).
 func (a *App) WebAccessUsername() string { return a.webaccess.Username() }

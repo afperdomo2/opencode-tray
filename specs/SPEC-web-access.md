@@ -117,3 +117,79 @@ func (s *Service) ApplyMode(m Mode) (Mode, error) {
 1. **URL del túnel persistente**: `opencode pair --remote` imprime un enlace de un solo uso/5 min. ¿Hay forma de obtener la URL del túnel estable (p. ej. `opencode service get remote`)? **Se verifica en implementación** (hecho, no decisión); mientras, el panel regenera el enlace al activar remoto.
 2. **Detección de IPs LAN**: usar `net.Interfaces()` + filtrar IPv4 privadas no-loopback. Detalle de implementación; se decide la heurística exacta en el plan.
 3. **Puerto por defecto**: OpenCode usa `49374`; confirmar si el usuario quiere poder fijar otro puerto en Ajustes (probable mejora, no bloqueante).
+
+---
+
+# Iteración 2 — URLs reales, acciones y remoto exclusivo
+
+> Traza a `web-access` + `ui-ux`. Verificado contra OpenCode **v2.0.32** en Windows.
+
+## Objetivo
+
+Mostrar las URLs reales de acceso (local, LAN y túnel), permitir abrirlas/copiarlas y dejar de exponer el remoto por accidente.
+
+## Hallazgos
+
+- En **Windows** el puerto por defecto es **45278**, no 49374 (rango efímero desde 49152).
+- `opencode api get /api/info` devuelve todas las URLs vigentes, incluida la del túnel:
+  `{"urls":["http://127.0.0.1:45278","https://<route>.<id>.opentunnel.xyz"]}`.
+- `opencode service status` devuelve la URL local real y no arranca el servicio.
+- `opencode api` **puede arrancar** el servicio: solo se llama si `Status().Running`.
+- `opencode service get remote` devuelve `true`/`false`; `service set remote false` apaga OpenTunnel.
+- `opencode pair --remote --yes` salta el consentimiento interactivo de la CLI; la app debe preguntar.
+- Los enlaces de `pair` son de un solo uso y expiran en 5 minutos; la URL base del túnel es estable.
+- Cambiar la contraseña cierra las sesiones web activas (duran 30 días).
+
+## Contrato
+
+```go
+type Kind string // local | lan | remote
+
+type URLItem struct {
+    URL  string `json:"url"`
+    Kind Kind   `json:"kind"`
+}
+
+type State struct {
+    Mode    string    `json:"mode"` // local | network | remote
+    Running bool      `json:"running"`
+    URLs    []URLItem `json:"urls"`
+}
+
+func (s *Service) State() (State, error)
+func (s *Service) IsAccessURL(raw string) (bool, error)
+```
+
+- `ComputeURLs` usa `/api/info` si el servicio corre; si está detenido, devuelve solo la URL local configurada con el puerto real (`DefaultPort()` = 45278 en Windows).
+- Clasificación: loopback → `local`; host `.opentunnel.xyz` o `https` → `remote`; resto → `lan`.
+- Orden: local → LAN → remoto; deduplicado.
+
+## Modos exclusivos
+
+- `ApplyMode(local|network)`: si `remote == true`, ejecuta `service set remote false`; luego fija `hostname` y arranca.
+- `ApplyMode(remote)`: fija `hostname 127.0.0.1` (no expone además la LAN), ejecuta `pair --remote --yes` y arranca.
+- La UI pide confirmación antes del remoto.
+
+## UI
+
+- Cada URL lleva badge de tipo y dos acciones: abrir (`BrowserOpenURL`) y copiar (`ClipboardSetText`), con tooltip, `aria-label` y confirmación `Copiada` durante 1,5 s.
+- Abrir se deshabilita si el servicio está detenido; copiar sigue disponible.
+- Solo se abren URLs devueltas por la app (`IsAccessURL` valida esquema y pertenencia).
+- Botones de modo con estado activo (`aria-pressed`) y descripción visible.
+- Skeleton de **2 filas** con badge, URL y dos placeholders, de la misma altura que las filas reales.
+- Aviso de seguridad visible en red/remoto y modal de confirmación para remoto.
+- Aviso en credenciales sobre el cierre de sesiones al cambiar contraseña.
+
+## Testing Strategy
+
+- Go: clasificación/deduplicación/orden de URLs, fallback detenido, `State.Mode`, `IsAccessURL`, `remote false` al cambiar a local/red, args de remoto.
+- Vitest: 2 filas de skeleton, modo activo, abrir, copiar, confirmación de remoto, acciones deshabilitadas con servicio detenido.
+
+## Success Criteria
+
+- [ ] Las URLs muestran el puerto real (45278 en Windows) y la URL del túnel cuando está activo.
+- [ ] Local/red/remoto se reflejan en la UI y el remoto se apaga al salir.
+- [ ] Abrir y copiar funcionan con feedback accesible.
+- [ ] Activar remoto requiere confirmación.
+- [ ] Tests y build en verde.
+

@@ -475,3 +475,69 @@
   - Acceptance: documentación coherente; tests y `wails build` en verde.
   - Verify: `pnpm test`, `pnpm build`, `go test ./...`, `wails build`.
   - Files: `README.md`, `design-system/opencode-tray/MASTER.md`, `specs/SPEC-shell.md`, `specs/SPEC-ui-ux.md`, `tasks/plan.md`, `tasks/todo.md`.
+
+---
+
+## Fase 15 — tooltip mensual, URLs accionables e instalador
+
+> Specs: `SPEC-shell.md` (Iteración 8), `SPEC-usage.md` (Iteración 8) y `SPEC-web-access.md` (Iteración 2). Sin dependencias nuevas.
+
+- [x] **Task: Humanizador de reinicio + barra de consumo**
+  - **Hecho:** `internal/usage/humanize.go` con `HumanReset`, `BatteryBar`, `TruncateUTF16` y `Tooltip`; español/inglés, zona local, 127 UTF-16.
+  - Acceptance: hoy → relativo, mañana → `mañana a las HH:MM`, 2+ días → fecha; sin reset → `sin reinicio`.
+  - Verify: `internal/usage/humanize_test.go`.
+  - Files: `internal/usage/humanize.go`, `internal/usage/humanize_test.go`.
+
+- [x] **Task: Tooltip vivo sin abrir el panel**
+  - **Hecho:** watcher en `App` con fetch inicial, ticker de 60 s, caché compartida (60 s), reintento de token al arrancar y refresco al cambiar idioma.
+  - Acceptance: el tooltip muestra datos desde el arranque y actualiza la cuenta atrás; un error conserva el último dato.
+  - Verify: `app_test.go`, `go test ./...` + revisión manual.
+  - Files: `app.go`, `app_test.go`, `internal/shell/singleinstance_bindings.go`, `internal/shell/singleinstance_windows.go`.
+
+- [x] **Task: URLs reales y acciones de abrir/copiar**
+  - **Hecho:** `webaccess.State` + `URLItem`; fuente `/api/info` (local/LAN/túnel) con fallback local; `IsAccessURL` valida antes de abrir; UI con badges, abrir, copiar y feedback.
+  - Acceptance: puerto real (45278 en Windows), URL del túnel visible, acciones funcionan y se deshabilitan si el servicio está detenido.
+  - Verify: `webaccess_test.go`, `acceso-web.spec.ts`, prueba live contra OpenCode v2.0.32.
+  - Files: `internal/webaccess/{webaccess,modes,urls}.go`, `internal/webaccess/webaccess_test.go`, `app.go`, `frontend/src/components/AccesoWeb.vue`, `frontend/src/components/acceso-web.spec.ts`.
+
+- [x] **Task: Modos exclusivos y confirmación de remoto**
+  - **Hecho:** `ApplyMode(local|network)` apaga `remote`; `ApplyMode(remote)` fija loopback + `pair --remote --yes`; modal de confirmación y avisos de seguridad.
+  - Acceptance: cambiar a local/red no deja OpenTunnel encendido; activar remoto no ocurre con un solo clic.
+  - Verify: `webaccess_test.go`, `acceso-web.spec.ts`.
+  - Files: `internal/webaccess/modes.go`, `frontend/src/components/AccesoWeb.vue`, i18n.
+
+- [x] **Task: Skeleton de 2 filas y tooltips de modo**
+  - **Hecho:** 2 filas esqueleto con badge/URL/acciones; `title` + `aria-label` + descripción visible del modo activo.
+  - Acceptance: sin salto de layout y modos comprensibles sin hover.
+  - Verify: `acceso-web.spec.ts`.
+  - Files: `frontend/src/components/AccesoWeb.vue`, `frontend/src/style.css`, `frontend/src/i18n/{es,en}.json`.
+
+- [x] **Task: Instalador Inno Setup per-user**
+  - **Hecho:** `.iss` con instalación en `%LOCALAPPDATA%`, detección/descarga de WebView2, aviso de `opencode`, accesos directos y desinstalador; `wails.json` con `Info`; script `build-installer.ps1`.
+  - Acceptance: genera `OpenCodeTray-Setup-<versión>.exe` sin admin; conserva ajustes al desinstalar.
+  - Verify: compilar en Windows limpio; `iscc` + `wails build`.
+  - Files: `build/windows/installer/opencode-tray.iss`, `scripts/build-installer.ps1`, `wails.json`.
+
+- [x] **Task: Sincronizar docs y validar**
+  - **Hecho:** README, RELEASE, specs, plan y todo actualizados; `go test ./...`, `pnpm test`, `pnpm build` y `wails build` en verde.
+  - Acceptance: documentación coherente; build de producción disponible para revisión.
+  - Verify: suite y build completos.
+  - Files: `README.md`, `RELEASE.md`, `specs/SPEC-{shell,usage,web-access}.md`, `tasks/plan.md`, `tasks/todo.md`.
+
+---
+
+## Fase 16 — fix del clic y menú del tray
+
+> Spec: `SPEC-shell.md` (Iteración 9). Sin dependencias nuevas.
+
+- [x] **Task: Registrar el tray en el hilo principal**
+  - **Hecho:** `main.go` llama a `app.initTray(trayIcon)` antes de `wails.Run`; `startup` ya no crea el tray. La ventana `SystrayClass` queda en el hilo que ejecuta el bucle de mensajes de Wails.
+  - Acceptance: clic izquierdo abre/cierra el panel; clic derecho abre el menú; "Salir" cierra la app.
+  - Verify: clic simulado con `PostMessage` + `IsWindowVisible` del flyout y de `#32768`; prueba manual.
+  - Files: `main.go`, `app.go`, `internal/shell/tray.go`, `AGENTS.md`.
+
+- [x] **Task: Documentar el gotcha**
+  - **Hecho:** comentario en `NewTrayHandler` y nota en `AGENTS.md` → "Notas técnicas".
+  - Acceptance: evitar que el tray vuelva a registrarse dentro de `startup`.
+  - Verify: revisión de documentación + build.
+  - Files: `internal/shell/tray.go`, `AGENTS.md`, `specs/SPEC-shell.md`, `tasks/plan.md`, `tasks/todo.md`.

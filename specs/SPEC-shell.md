@@ -325,3 +325,102 @@ Que el flyout conserve el mismo alto en todas las pestañas, como en Ajustes, pa
 - [ ] La ventana no crece ni se encoge al navegar o al cargar datos.
 - [ ] El contenido largo hace scroll sin mover la nav inferior.
 - [ ] Tests y build en verde.
+
+---
+
+# Iteración 8 — Tooltip mensual y reinicio humanizado
+
+> Traza a `shell` + `usage`. Sustituye el punto 3 de la Iteración 6.
+
+## Objective
+
+Que el hover del icono del tray comunique de un vistazo el **consumo mensual** y **cuándo se reinicia**, sin abrir el panel.
+
+## Cambios
+
+1. **Formato del tooltip.**
+   - `OpenCode · Mensual ▰▰▱▱▱ 42% · 🕒 en 4 h`
+   - `OpenCode · Mensual ▰▰▱▱▱ 42% · 🗓 mañana a las 12:30`
+   - `OpenCode · Mensual ▰▰▱▱▱ 42% · 🗓 el 12 jun 26`
+   - `OpenCode · Mensual ▰▰▱▱▱ 42% · ↻ sin reinicio`
+   - La barra representa **% consumido** (5 celdas, `floor(pct/20)`), no batería restante.
+
+2. **Humanizador (`internal/usage/humanize.go`).**
+   - Hoy: `en 47 min` / `en 4 h`.
+   - Mañana: `mañana a las 12:30`.
+   - 2+ días: `el 12 jun 26`.
+   - Sin reset: `sin reinicio`; vencido: `ahora`.
+   - Español 24 h, inglés 12 h (`tomorrow at 12:30 PM`, `Jun 12, 2026`).
+   - Sin librerías nuevas; reloj inyectable para tests.
+
+3. **Iconos Unicode.**
+   - Preferidos: `🕒` (hoy), `🗓` (mañana/futuro), `↻` (sin reset), `⚠` (error).
+   - Fallback documentado: `◷`, `▦`, `↻`, `!` si el shell no renderiza emoji.
+
+4. **Límites nativos.**
+   - Una sola línea y máximo 127 unidades UTF-16 (`szTip`).
+   - Truncado sin partir pares sustitutos.
+
+5. **Refresco sin abrir el panel.**
+   - Watcher en Go: fetch inicial a los ~2 s + ticker de 60 s.
+   - El ticker recalcula la cuenta atrás; el fetch real respeta `RefreshMin`.
+   - Caché compartida con `UsageFetch` (TTL 60 s) para no duplicar peticiones.
+   - Un reintento automático de token al arrancar si no hay token.
+   - Al cambiar idioma se reconstruye el tooltip.
+   - Un error conserva el último tooltip válido.
+
+## Fuera de alcance
+
+- Popover visual al hacer hover: `energye/systray` no expone evento hover.
+- Iconos gráficos o color dentro del tooltip nativo.
+
+## Testing Strategy
+
+- **Go**: tabla del humanizador (es/en, hoy/mañana/fecha, sin reset, vencido), barra de consumo, truncado UTF-16 y tooltip completo.
+- **Manual**: hover con la app recién abierta y el panel cerrado; cambio de idioma; error de red.
+- **Build**: `go test ./...`, `pnpm test`, `pnpm build`, `wails build`.
+
+## Success Criteria
+
+- [ ] El tooltip muestra datos sin abrir el panel.
+- [ ] La cuenta atrás se actualiza cada minuto.
+- [ ] Cambiar idioma cambia el tooltip.
+- [ ] Un error no pisa el último tooltip válido.
+- [ ] Tests y build en verde.
+
+---
+
+# Iteración 9 — Tray registrado en el hilo principal
+
+> Traza a `shell`. Corrige el fallo por el que el clic izquierdo no abría el panel y el clic derecho no mostraba el menú.
+
+## Causa
+
+Wails v2.16 ejecuta `OnStartup` en una **goroutine nueva**. Al registrar `energye/systray` dentro de `startup`, la ventana `SystrayClass` se creaba en un hilo que no tenía bucle de mensajes, mientras el bucle de Wails corría en el hilo principal. Los mensajes de clic se quedaban en la cola de un hilo que nunca los procesaba: el icono se veía, pero no respondía.
+
+## Cambios
+
+1. **Registro temprano.**
+   - `main.go` llama a `app.initTray(trayIcon)` **antes** de `wails.Run`.
+   - La ventana del tray se crea en el hilo principal, que luego ejecuta el bucle de mensajes de Wails.
+2. **Callbacks seguros durante el arranque.**
+   - `initTray` conecta `OnClick`/`OnShow`/`OnQuit` con guardas para `a.win` y `a.ctx` nulos.
+   - `startup` ya no crea el tray; solo monta la ventana y arranca el watcher del tooltip.
+3. **Documentación.**
+   - `internal/shell/tray.go` explica el requisito de hilo.
+   - `AGENTS.md` recoge el gotcha para evitar regresiones.
+
+## Testing Strategy
+
+- **Manual**: clic izquierdo abre el panel; segundo clic lo cierra; clic derecho muestra el menú (Mostrar panel / Salir).
+- **Automatizado**: clic simulado con `PostMessage` al `SystrayClass` y verificación de `IsWindowVisible` del flyout y de la ventana `#32768` del menú.
+- **Build**: `go test ./...`, `pnpm test`, `pnpm build`, `wails build`.
+
+## Success Criteria
+
+- [ ] El clic izquierdo abre y cierra el panel.
+- [ ] El clic derecho abre el menú contextual.
+- [ ] "Salir" cierra la app.
+- [ ] Tests y build en verde.
+
+

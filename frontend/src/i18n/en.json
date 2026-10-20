@@ -65,16 +65,40 @@
     "local": "Local",
     "network": "Network (by IP)",
     "remote": "Remote (tunnel)",
+    "active": "Active",
+    "modeHint": {
+      "local": "This PC only (127.0.0.1)",
+      "network": "Your local network (0.0.0.0): reachable by IP",
+      "remote": "Internet via OpenTunnel: exposes the server"
+    },
+    "networkWarning": "Anyone on your local network can try to connect. Use a strong password.",
+    "remoteWarning": "The server is exposed to the Internet via OpenTunnel. Access requires a password.",
     "urls": "Access URLs",
-    "noUrls": "No network IPs detected.",
+    "noUrls": "No URLs available. Start the service.",
+    "kind": {
+      "local": "Local",
+      "lan": "LAN",
+      "remote": "Remote"
+    },
+    "open": "Open in browser",
+    "copy": "Copy URL",
+    "copied": "Copied",
+    "copyError": "Could not copy the URL.",
+    "startToOpen": "Start the service to open",
+    "stoppedHint": "The service is stopped; URLs will not respond until you start it.",
     "username": "Username",
     "password": "Password",
     "changePassword": "Change password",
     "newPassword": "New password",
     "save": "Save",
     "saved": "Password updated",
+    "sessionHint": "Changing the password signs out active web sessions (they last 30 days).",
     "show": "Show",
-    "hide": "Hide"
+    "hide": "Hide",
+    "remoteConfirmTitle": "Enable remote access",
+    "remoteConfirmBody": "This exposes your OpenCode server to the Internet through OpenTunnel.",
+    "remoteConfirmHint": "Access is still protected by the service password. You can turn it off by switching back to Local or Network.",
+    "remoteConfirmEnable": "Enable remote"
   },
   "config": {
     "title": "Configuration",
@@ -101,6 +125,7 @@
     "language": "Language",
     "general": "General",
     "close": "Close",
+    "cancel": "Cancel",
     "autoStart": "Start with Windows"
   }
 }

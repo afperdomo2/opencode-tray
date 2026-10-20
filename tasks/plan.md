@@ -44,6 +44,8 @@ shell
 | 12 | `shell` | **cierre estable + tooltip**: guarda de blur post-apertura con verificación de foreground, foco reforzado y tooltip nativo con consumo (`OpenCode · 5h · 7d · 30d`) |
 | 13 | `ui-ux` + `service-control` | **pestañas y acciones estables**: métricas fijas del nav, estado+URI juntos (descartando `stopped` como URL), etiquetas cortas en grids, tooltips nativos y scroll con espacio reservado |
 | 14 | `shell` + `ui-ux` | **alto fijo y fila de servicio unificada**: el flyout mantiene 600 px en todas las pestañas; Resumen usa el mismo `status-row` que Servicio para estado+URI |
+| 15 | `shell` + `web-access` + `ui-ux` | **tooltip mensual humanizado** (barra + iconos + reinicio), **URLs reales con abrir/copiar**, modos exclusivos con apagado del remoto, skeleton de 2 filas e **instalador Inno Setup per-user** |
+| 16 | `shell` | **fix del tray**: registrar `energye/systray` en el hilo principal (`main`, antes de `wails.Run`) para que el clic izquierdo abra el panel y el clic derecho muestre el menú |
 
 Las fases 3a/3b/3c se pueden hacer **en paralelo** (independientes entre sí).
 
@@ -77,6 +79,8 @@ Cada fase termina con su checkpoint antes de pasar a la siguiente:
 - **Fase 12**: un clic abre y mantiene el panel (sin cierre por blur transitorio); clic fuera/Esc/tray lo cierran; el tooltip del tray muestra consumo tras `UsageFetch`; `go test ./...`, `pnpm test`, `pnpm build` y `wails build` en verde.
 - **Fase 13**: pestañas sin movimiento, estado+URI juntos, botones cortos sin saltos, tooltips en botones icono y scroll sin reflujo; `pnpm test`, `pnpm build`, `go test ./...` y `wails build` en verde.
 - **Fase 14**: mismo alto en todas las pestañas sin medir contenido, y estado+URI alineados en Resumen; tests y build en verde.
+- **Fase 15**: tooltip con barra/porcentaje/reinicio actualizado sin abrir el panel; URLs local/LAN/remota con abrir/copiar; remoto exclusivo con confirmación; skeleton de 2 filas; instalador per-user generado; `go test ./...`, `pnpm test`, `pnpm build` y `wails build` en verde.
+- **Fase 16**: clic izquierdo abre/cierra el panel, clic derecho abre el menú y "Salir" cierra la app; tray creado en el hilo principal; tests y build en verde.
 
 ## 6. Estrategia de testing (desde el inicio)
 

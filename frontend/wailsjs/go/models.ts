@@ -149,3 +149,56 @@ export namespace usage {
 
 }
 
+export namespace webaccess {
+	
+	export class URLItem {
+	    url: string;
+	    kind: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new URLItem(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.url = source["url"];
+	        this.kind = source["kind"];
+	    }
+	}
+	export class State {
+	    mode: string;
+	    running: boolean;
+	    urls: URLItem[];
+	
+	    static createFrom(source: any = {}) {
+	        return new State(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.mode = source["mode"];
+	        this.running = source["running"];
+	        this.urls = this.convertValues(source["urls"], URLItem);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+
+}
+

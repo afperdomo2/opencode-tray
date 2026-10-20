@@ -1,12 +1,19 @@
 package webaccess
 
-import "testing"
+import (
+	"testing"
+
+	"opencode-tray/internal/servicecontrol"
+)
 
 type mockBackend struct {
 	sets    map[string]string
 	runs    [][]string
 	started int
 	port    string
+	status  servicecontrol.Status
+	info    servicecontrol.ServerInfo
+	infoErr error
 }
 
 func newMockBackend() *mockBackend {
@@ -25,15 +32,25 @@ func (m *mockBackend) RunRaw(args ...string) (string, error) {
 	return "tunnel-link", nil
 }
 func (m *mockBackend) Start() error { m.started++; return nil }
+func (m *mockBackend) Status() (servicecontrol.Status, error) {
+	return m.status, nil
+}
+func (m *mockBackend) Info() (servicecontrol.ServerInfo, error) {
+	return m.info, m.infoErr
+}
 
-func TestApplyModeLocal(t *testing.T) {
+func TestApplyModeLocalDisablesRemote(t *testing.T) {
 	b := newMockBackend()
+	b.sets["remote"] = "true"
 	s := New(b)
 	if err := s.ApplyMode(ModeLocal); err != nil {
 		t.Fatal(err)
 	}
 	if b.sets["hostname"] != "127.0.0.1" {
 		t.Errorf("hostname = %q, want 127.0.0.1", b.sets["hostname"])
+	}
+	if b.sets["remote"] != "false" {
+		t.Errorf("remote = %q, want false", b.sets["remote"])
 	}
 	if b.started != 1 {
 		t.Errorf("started = %d, want 1", b.started)
@@ -49,6 +66,9 @@ func TestApplyModeNetwork(t *testing.T) {
 	if b.sets["hostname"] != "0.0.0.0" {
 		t.Errorf("hostname = %q, want 0.0.0.0", b.sets["hostname"])
 	}
+	if b.started != 1 {
+		t.Errorf("started = %d, want 1", b.started)
+	}
 }
 
 func TestApplyModeRemote(t *testing.T) {
@@ -57,12 +77,18 @@ func TestApplyModeRemote(t *testing.T) {
 	if err := s.ApplyMode(ModeRemote); err != nil {
 		t.Fatal(err)
 	}
+	if b.sets["hostname"] != "127.0.0.1" {
+		t.Errorf("hostname = %q, want 127.0.0.1", b.sets["hostname"])
+	}
 	if len(b.runs) != 1 {
 		t.Fatalf("runs = %v", b.runs)
 	}
 	got := b.runs[0]
 	if len(got) != 3 || got[0] != "pair" || got[1] != "--remote" || got[2] != "--yes" {
 		t.Errorf("RunRaw args = %v", got)
+	}
+	if b.started != 1 {
+		t.Errorf("started = %d, want 1", b.started)
 	}
 }
 
@@ -73,17 +99,90 @@ func TestApplyModeInvalid(t *testing.T) {
 	}
 }
 
-func TestComputeURLs(t *testing.T) {
+func TestComputeURLsRunningUsesInfo(t *testing.T) {
 	b := newMockBackend()
+	b.status = servicecontrol.Status{Running: true, URL: "http://127.0.0.1:45278"}
+	b.info = servicecontrol.ServerInfo{URLs: []string{
+		"http://192.168.1.5:45278",
+		"http://127.0.0.1:45278",
+		"https://abc123.def456.opentunnel.xyz",
+		"http://127.0.0.1:45278",
+	}}
 	s := New(b)
-	s.lanIPs = func() ([]string, error) { return []string{"192.168.1.5", "10.0.0.2"}, nil }
 
-	urls, err := s.ComputeURLs()
+	items, err := s.ComputeURLs()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(urls) != 2 || urls[0] != "http://192.168.1.5:5000" || urls[1] != "http://10.0.0.2:5000" {
-		t.Errorf("urls = %v", urls)
+	want := []URLItem{
+		{URL: "http://127.0.0.1:45278", Kind: KindLocal},
+		{URL: "http://192.168.1.5:45278", Kind: KindLAN},
+		{URL: "https://abc123.def456.opentunnel.xyz", Kind: KindRemote},
+	}
+	if len(items) != len(want) {
+		t.Fatalf("items = %v", items)
+	}
+	for i := range want {
+		if items[i] != want[i] {
+			t.Errorf("items[%d] = %v, want %v", i, items[i], want[i])
+		}
+	}
+}
+
+func TestComputeURLsStoppedFallback(t *testing.T) {
+	b := newMockBackend()
+	b.port = ""
+	b.sets["hostname"] = "127.0.0.1"
+	s := New(b)
+
+	items, err := s.ComputeURLs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "http://127.0.0.1:" + DefaultPort()
+	if len(items) != 1 || items[0].URL != want || items[0].Kind != KindLocal {
+		t.Errorf("items = %v, want %q", items, want)
+	}
+}
+
+func TestStateMode(t *testing.T) {
+	b := newMockBackend()
+	b.status = servicecontrol.Status{Running: true}
+	b.info = servicecontrol.ServerInfo{URLs: []string{"http://127.0.0.1:5000"}}
+	s := New(b)
+
+	if st, _ := s.State(); st.Mode != "local" || !st.Running {
+		t.Errorf("State local = %+v", st)
+	}
+
+	b.sets["hostname"] = "0.0.0.0"
+	if st, _ := s.State(); st.Mode != "network" {
+		t.Errorf("State network = %+v", st)
+	}
+
+	b.sets["remote"] = "true"
+	if st, _ := s.State(); st.Mode != "remote" {
+		t.Errorf("State remote = %+v", st)
+	}
+}
+
+func TestIsAccessURL(t *testing.T) {
+	b := newMockBackend()
+	b.status = servicecontrol.Status{Running: true}
+	b.info = servicecontrol.ServerInfo{URLs: []string{"http://127.0.0.1:5000"}}
+	s := New(b)
+
+	ok, err := s.IsAccessURL("http://127.0.0.1:5000")
+	if err != nil || !ok {
+		t.Errorf("IsAccessURL válida = %v, %v", ok, err)
+	}
+	ok, err = s.IsAccessURL("http://evil.example.com")
+	if err != nil || ok {
+		t.Errorf("IsAccessURL externa = %v, %v", ok, err)
+	}
+	ok, err = s.IsAccessURL("file:///c:/secreto")
+	if err != nil || ok {
+		t.Errorf("IsAccessURL file = %v, %v", ok, err)
 	}
 }
 

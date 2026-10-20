@@ -106,8 +106,12 @@ export function WebAccessCurrentPassword() {
   return window['go']['main']['App']['WebAccessCurrentPassword']();
 }
 
-export function WebAccessURLs() {
-  return window['go']['main']['App']['WebAccessURLs']();
+export function WebAccessOpenURL(arg1) {
+  return window['go']['main']['App']['WebAccessOpenURL'](arg1);
+}
+
+export function WebAccessState() {
+  return window['go']['main']['App']['WebAccessState']();
 }
 
 export function WebAccessUsername() {

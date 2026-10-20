@@ -29,6 +29,12 @@ func main() {
 
 	app := NewApp()
 
+	// El tray se registra en el hilo principal, antes de que Wails arranque su
+	// bucle de mensajes. Si se registrara dentro de OnStartup (que Wails ejecuta
+	// en otra goroutine), la ventana del tray quedaría en un hilo sin bucle de
+	// mensajes y los clics/menú no funcionarían.
+	app.initTray(trayIcon)
+
 	err := wails.Run(&options.App{
 		Title:            "OpenCode Tray",
 		Width:            shell.FlyoutWidth,

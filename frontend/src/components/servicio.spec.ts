@@ -1,0 +1,76 @@
+import { describe, it, expect, vi } from 'vitest'
+import { mount, flushPromises } from '@vue/test-utils'
+import { createI18n } from 'vue-i18n'
+import es from '../i18n/es.json'
+import en from '../i18n/en.json'
+import Servicio from './Servicio.vue'
+
+const mocks = vi.hoisted(() => ({
+  status: vi.fn(),
+  mcp: vi.fn(),
+  json: vi.fn(),
+  openEditor: vi.fn(),
+  openDir: vi.fn(),
+  start: vi.fn(),
+  stop: vi.fn(),
+  forceStop: vi.fn(),
+}))
+
+vi.mock('../../wailsjs/go/main/App', () => ({
+  ServiceStatus: mocks.status,
+  ServiceStart: mocks.start,
+  ServiceStop: mocks.stop,
+  ServiceForceStop: mocks.forceStop,
+  ConfigListMCP: mocks.mcp,
+  ConfigJSON: mocks.json,
+  ConfigOpenInEditor: mocks.openEditor,
+  ConfigOpenDir: mocks.openDir,
+}))
+
+const makeI18n = () =>
+  createI18n({ legacy: false, locale: 'es', fallbackLocale: 'en', messages: { es, en } })
+
+async function mountServicio() {
+  mocks.status.mockResolvedValue({ running: true, url: 'http://127.0.0.1:49374' })
+  mocks.mcp.mockResolvedValue([{ name: 'context7', status: 'connected' }])
+  mocks.json.mockResolvedValue('{}')
+  const w = mount(Servicio, { global: { plugins: [makeI18n()] } })
+  await flushPromises()
+  return w
+}
+
+describe('Servicio', () => {
+  it('usa un panel grid con control y configuración', async () => {
+    const w = await mountServicio()
+    expect(w.find('.panel-grid').exists()).toBe(true)
+    expect(w.findAll('.panel-grid > .card').length).toBe(2)
+    expect(w.text()).toContain('Corriendo')
+    expect(w.text()).toContain('context7')
+  })
+
+  it('muestra skeleton mientras el estado del servicio carga', async () => {
+    mocks.status.mockReturnValue(new Promise(() => {}))
+    mocks.mcp.mockResolvedValue([])
+    mocks.json.mockResolvedValue('{}')
+
+    const w = mount(Servicio, { global: { plugins: [makeI18n()] } })
+    await flushPromises()
+
+    const cards = w.findAll('.panel-grid > .card')
+    expect(cards[0].find('.skeleton').exists()).toBe(true)
+    expect(cards[0].find('.status-row').exists()).toBe(false)
+  })
+
+  it('muestra los MCP sin esperar a que cargue el JSON', async () => {
+    mocks.status.mockResolvedValue({ running: true, url: 'http://127.0.0.1:49374' })
+    mocks.mcp.mockResolvedValue([{ name: 'context7', status: 'connected' }])
+    mocks.json.mockReturnValue(new Promise(() => {}))
+
+    const w = mount(Servicio, { global: { plugins: [makeI18n()] } })
+    await flushPromises()
+
+    const configCard = w.findAll('.panel-grid > .card')[1]
+    expect(configCard.text()).toContain('context7')
+    expect(configCard.find('.skeleton').exists()).toBe(false)
+  })
+})

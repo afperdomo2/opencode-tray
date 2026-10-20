@@ -37,6 +37,8 @@ shell
 | 5 | Pulido + release | README final, design system aplicado, `.exe` portable, instalador (posterior) |
 | 6 | `resumen` | vista overview (landing) + ajustes de UI/UX (iconos, cabecera, idioma segmentado, acordeón de config, profundidad visual) |
 | 7 | `ui-ux` | refinamientos: quitar menú Consumo, idioma a Ajustes, **botón `sm` estándar**, **unificar Servicio+Config**, JSON en modal, switches en Ajustes, **dashboard sin botones** |
+| 8 | `ui-ux` | **responsive**: CSS Grid/Flexbox + container queries, contenido centrado (max 1120 px), grids en Resumen/Servicio/Acceso web/Ajustes, ventana mínima 340×420, clase `.btn` estándar |
+| 9 | `ui-ux` | **skeletons**: carga independiente por widget (consumo/servicio/MCP/URLs/credenciales/ajustes), errores por card y `Skeleton.vue` accesible |
 
 Las fases 3a/3b/3c se pueden hacer **en paralelo** (independientes entre sí).
 
@@ -61,6 +63,8 @@ Cada fase termina con su checkpoint antes de pasar a la siguiente:
 - **Fase 3a/3b/3c**: consumo se muestra; modos alternan y muestran URLs; visor enmascara secretos y abre el editor.
 - **Fase 4**: alertas disparan sin spam; umbrales configurables.
 - **Fase 5**: `wails build` produce `.exe`; checklist de `ui-ux-pro-max` (contraste, foco, targets) aplicado.
+- **Fase 8**: sin scroll horizontal en 340–2560 px; contenido centrado; ventana mínima respetada; `pnpm build` + tests verdes.
+- **Fase 9**: cada widget async se pinta al resolver su propia carga; skeletons accesibles y sin saltos de layout; tests verdes.
 
 ## 6. Estrategia de testing (desde el inicio)
 

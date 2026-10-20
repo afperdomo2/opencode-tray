@@ -10,6 +10,7 @@
     "ajustes": "Settings"
   },
   "service": {
+    "control": "Service control",
     "running": "Running",
     "stopped": "Stopped",
     "start": "Start",
@@ -45,6 +46,7 @@
     "hide": "Hide"
   },
   "config": {
+    "title": "Configuration",
     "mcp": "MCP servers",
     "empty": "No MCP servers configured",
     "json": "Configuration (JSON)",
@@ -61,6 +63,7 @@
     "test": "Test now"
   },
   "common": {
+    "loading": "Loading…",
     "language": "Language",
     "general": "General",
     "close": "Close",

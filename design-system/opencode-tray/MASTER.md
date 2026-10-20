@@ -160,6 +160,57 @@
 }
 ```
 
+### Standard Action Button (`.btn`)
+
+Todos los botones de acción de la app comparten una única clase, tamaño `sm`, texto e icono de 14px:
+
+```css
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: 30px;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+```
+
+No usar estilos nativos del navegador para acciones (p. ej. el botón Guardar de Acceso web). Cuando un `.btn` comparte fila con un input, debe igualar su altura (`min-height: var(--target)`) para mantener la alineación.
+
+### Responsive Layout
+
+El panel se adapta de ~340 px a monitores grandes sin estirar widgets:
+
+- **Contenedor:** `max-width: 1120px`, centrado con `margin-inline: auto`; padding fluido con `clamp(14px, 2.5vw, 24px)`.
+- **Grids:** `repeat(auto-fit, minmax(min(100%, 320px), 1fr))` para Resumen, Servicio, Acceso web y Ajustes.
+- **Container queries:** las cards son contenedores (`container-type: inline-size`); el contenido interno se reorganiza cuando la card mide menos de 300 px.
+- **Texto:** `min-width: 0` y `overflow-wrap: anywhere` en URLs, nombres MCP y títulos.
+- **Ventana:** mínima 340×420; sin scroll horizontal en ningún tamaño.
+- **No usar DataGrid** para listas simples ni Tailwind como dependencia.
+
+### Loading Skeletons
+
+Cada bloque asíncrono tiene su propio estado de carga (no un loading global):
+
+```vue
+<div v-if="loading" class="skeleton-stack" role="status">
+  <span class="sr-only">{{ t('common.loading') }}</span>
+  <Skeleton width="80%" height="14px" />
+</div>
+```
+
+- `Skeleton` es decorativo (`aria-hidden`); el estado se anuncia con `role="status"` + `.sr-only`.
+- Shimmer de 1.4 s, desactivado por `prefers-reduced-motion`.
+- Mostrar skeleton solo en el widget que carga; el resto se renderiza en cuanto esté listo.
+- En error, mostrar el mensaje en la card afectada y conservar las demás.
+
 ---
 
 ## Style Guidelines

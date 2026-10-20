@@ -44,6 +44,32 @@ describe('Resumen', () => {
     expect(text).toContain('Servicio')
     expect(text).toContain('context7')
     expect(text).toContain('http://0.0.0.0:49374')
+    expect(w.find('.dashboard').exists()).toBe(true)
+    expect(w.findAll('.dashboard > .card').length).toBe(2)
+  })
+
+  it('renderiza consumo aunque el servicio siga cargando (skeleton independiente)', async () => {
+    let resolveStatus: (value: { running: boolean; url: string }) => void = () => {}
+    mocks.status.mockReturnValue(
+      new Promise((resolve) => {
+        resolveStatus = resolve
+      }),
+    )
+    mocks.usage.mockResolvedValue(usage(10, 50, 20))
+    mocks.mcp.mockResolvedValue([])
+
+    const w = mount(Resumen, { global: { plugins: [makeI18n()] } })
+    await flushPromises()
+
+    const cards = w.findAll('.card')
+    expect(cards[0].findAll('.bar-fill').length).toBe(3)
+    expect(cards[1].find('.skeleton').exists()).toBe(true)
+
+    resolveStatus({ running: true, url: 'http://127.0.0.1:49374' })
+    await flushPromises()
+
+    expect(w.findAll('.card')[1].find('.skeleton').exists()).toBe(false)
+    expect(w.text()).toContain('Corriendo')
   })
 
   it('es solo resumen: no tiene botones de acción', async () => {

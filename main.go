@@ -32,6 +32,8 @@ func main() {
 		Title:            "OpenCode Tray",
 		Width:            380,
 		Height:           520,
+		MinWidth:         340,
+		MinHeight:        420,
 		AssetServer:      &assetserver.Options{Assets: assets},
 		BackgroundColour: &options.RGBA{R: 15, G: 23, B: 42, A: 1},
 		// Cerrar la ventana la minimiza al tray; no sale de la app.

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import es from '../i18n/es.json'
 import en from '../i18n/en.json'
@@ -17,8 +17,9 @@ const makeI18n = () =>
   createI18n({ legacy: false, locale: 'es', fallbackLocale: 'en', messages: { es, en } })
 
 describe('Ajustes', () => {
-  it('renderiza el toggle de auto-inicio y los de notificación', () => {
+  it('renderiza el toggle de auto-inicio y los de notificación', async () => {
     const w = mount(Ajustes, { global: { plugins: [makeI18n()] } })
+    await flushPromises()
     const toggles = w.findAll('input[type="checkbox"]')
     // auto-inicio + 3 tipos de notificación
     expect(toggles.length).toBe(4)
@@ -26,5 +27,7 @@ describe('Ajustes', () => {
     expect(w.text()).toContain('Ritmo de consumo')
     expect(w.text()).toContain('Casi sin saldo')
     expect(w.text()).toContain('Servicio detenido')
+    expect(w.find('.settings-grid').exists()).toBe(true)
+    expect(w.findAll('.settings-grid > .card').length).toBe(3)
   })
 })

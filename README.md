@@ -25,7 +25,7 @@ cd frontend && pnpm build  # type-check (vue-tsc) + build del frontend
 - **Acceso web**: modos local / red (por IP) / remoto (túnel); usuario (`opencode`) y contraseña (enmascarada) con cambio de contraseña.
 - **Ajustes**: idioma (es/en), auto-inicio con Windows y switches de notificaciones.
 
-La UI usa iconos SVG (sin emoji), botones en tamaño compacto estándar, control segmentado de idioma, switches estilizados y cards con profundidad (design system).
+La UI usa iconos SVG (sin emoji), botones `btn` en tamaño compacto estándar, control segmentado de idioma, switches estilizados y cards con profundidad (design system). El layout es responsive con CSS Grid/Flexbox y container queries, sin dependencias de UI. Cada widget async (consumo, servicio, MCP, URLs, ajustes) carga con su propio **skeleton**.
 
 > **Notificaciones**: la **lógica** de alertas (ritmo de consumo, agotamiento por umbral, servicio detenido inesperadamente) está implementada y probada, pero el **envío de toasts está deshabilitado en runtime** — el mecanismo de toast de Wails (go-toast) entraba en conflicto con el bucle de la bandeja y la dejaba muda. Detalle y cómo reactivarlo en [`specs/SPEC-notifications.md`](specs/SPEC-notifications.md).
 

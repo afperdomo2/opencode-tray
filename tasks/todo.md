@@ -252,3 +252,57 @@
   - Acceptance: el Resumen no tiene botones; muestra widgets de Consumo y de Servicio+Config; las acciones están en los menús.
   - Verify: Vitest (no hay `.actions` ni `<button>` en Resumen) — en verde.
   - Files: `Resumen.vue`, `resumen.spec.ts`.
+
+---
+
+## Fase 8 — ui-ux (responsive)
+
+> Spec: [`specs/SPEC-ui-ux.md`](../specs/SPEC-ui-ux.md) → Iteración 3. Frontend + ventana; sin dependencias nuevas.
+
+- [x] **Task: Shell responsive y contenido centrado**
+  - **Hecho:** `--content-max: 1120px`, `--content-gutter: clamp(...)`, nav y contenido con `max-width` + `margin-inline:auto`; `min-width:0` y wrap en textos largos.
+  - Acceptance: en pantallas grandes el contenido no se estira a todo el ancho; en 340 px no hay scroll horizontal.
+  - Verify: revisión manual 340/768/1280/2560 px + `pnpm build`.
+  - Files: `style.css`, `App.vue`.
+
+- [x] **Task: Grids responsive en las vistas**
+  - **Hecho:** `.dashboard` (Resumen), `.panel-grid` (Servicio y Acceso web) y `.settings-grid` (Ajustes) con `auto-fit/minmax`; cards de consumo con grid interno y container query.
+  - Acceptance: 1 columna en compacto y 2–3 columnas cuando el ancho lo permite; barras de consumo legibles.
+  - Verify: Vitest (`.dashboard`, `.panel-grid`, `.settings-grid`) + revisión visual.
+  - Files: `Resumen.vue`, `Servicio.vue`, `AccesoWeb.vue`, `Ajustes.vue`, `style.css`.
+
+- [x] **Task: Botón estándar `.btn`**
+  - **Hecho:** clase `.btn` única (30px / 12px / icono 14) aplicada a acciones; el botón **Guardar** de Acceso web deja de usar el estilo nativo y en su formulario iguala la altura del input (`min-height: var(--target)`).
+  - Acceptance: todos los botones de acción comparten el mismo diseño; Guardar incluido.
+  - Verify: Vitest (`acceso-web.spec.ts` busca `.pw-change button.btn`).
+  - Files: `style.css`, `Servicio.vue`, `AccesoWeb.vue`, `Ajustes.vue`.
+
+- [x] **Task: Tamaño mínimo de ventana**
+  - **Hecho:** `MinWidth: 340`, `MinHeight: 420` en `main.go`.
+  - Acceptance: la ventana no se puede reducir a un tamaño ilegible.
+  - Verify: `go build ./...` + revisión manual.
+  - Files: `main.go`.
+
+---
+
+## Fase 9 — ui-ux (skeletons de carga)
+
+> Spec: [`specs/SPEC-ui-ux.md`](../specs/SPEC-ui-ux.md) → Iteración 4. Frontend; sin dependencias nuevas.
+
+- [x] **Task: Componente Skeleton accesible**
+  - **Hecho:** `Skeleton.vue` con `width`/`height`/`radius`, `aria-hidden`; contenedores con `role="status"` y texto `.sr-only` (`common.loading`); shimmer respeta `prefers-reduced-motion`.
+  - Acceptance: skeletons decorativos + estado de carga anunciado; sin saltos de layout.
+  - Verify: `skeleton.spec.ts` — en verde.
+  - Files: `Skeleton.vue`, `skeleton.spec.ts`, `style.css`, `i18n/*`.
+
+- [x] **Task: Carga independiente en Resumen**
+  - **Hecho:** `loadUsage`, `loadService` y `loadMcp` en paralelo con loading/error propios; consumo se pinta sin esperar al servicio.
+  - Acceptance: si consumo resuelve antes, se muestra mientras servicio/MCP siguen en skeleton; errores por card.
+  - Verify: Vitest (consumo visible con servicio pendiente; skeleton desaparece al resolver) — en verde.
+  - Files: `Resumen.vue`, `resumen.spec.ts`.
+
+- [x] **Task: Skeletons en Servicio, Acceso web y Ajustes**
+  - **Hecho:** `loadStatus`/`loadMcp`/`loadJson` separados en Servicio (MCP visible sin esperar al JSON; skeleton en el modal); `loadUrls`/`loadCredentials` en Acceso web (usuario y contraseña en paralelo); skeleton de General mientras `GetSettings`.
+  - Acceptance: cada bloque muestra skeleton/error/datos de forma independiente.
+  - Verify: `servicio.spec.ts`, `acceso-web.spec.ts`, `ajustes.spec.ts` — en verde.
+  - Files: `Servicio.vue`, `AccesoWeb.vue`, `Ajustes.vue`, `*.spec.ts`.

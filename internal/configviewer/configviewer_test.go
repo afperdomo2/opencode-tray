@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -28,6 +29,24 @@ func TestListMCPParsesOutput(t *testing.T) {
 	}
 	if servers[1].Name != "foo" || servers[1].Status != "needs authentication" {
 		t.Errorf("servers[1] = %+v", servers[1])
+	}
+}
+
+func TestListMCPIgnoresStatusMarkers(t *testing.T) {
+	r := &mockRunner{out: "○ github  disabled\n● local  connected\n✗ foo  needs authentication\n"}
+	s := NewWithRunner(r, t.TempDir())
+
+	servers, err := s.ListMCP()
+	if err != nil {
+		t.Fatalf("ListMCP() error: %v", err)
+	}
+	want := []MCPServer{
+		{Name: "github", Status: "disabled"},
+		{Name: "local", Status: "connected"},
+		{Name: "foo", Status: "needs authentication"},
+	}
+	if !reflect.DeepEqual(servers, want) {
+		t.Errorf("servers = %+v, want %+v", servers, want)
 	}
 }
 

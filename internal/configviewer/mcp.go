@@ -3,10 +3,20 @@ package configviewer
 import (
 	"fmt"
 	"strings"
+	"unicode"
 )
 
+// isMCPMarker indica si el rune inicial es un marcador de estado o separador.
+// Las salidas de OpenCode usan ✓, ✗, ●, ○ y variantes con selector de emoji.
+func isMCPMarker(r rune) bool {
+	return unicode.IsSpace(r) ||
+		unicode.IsSymbol(r) ||
+		unicode.Is(unicode.Mn, r) ||
+		r == '•' || r == '·'
+}
+
 // ListMCP lista los servidores MCP con su estado, vía `opencode mcp list`.
-// Salida típica: "✓ context7  connected" / "✗ foo  needs authentication".
+// Salida típica: "✓ context7  connected" / "○ github  disabled".
 func (s *Service) ListMCP() ([]MCPServer, error) {
 	stdout, stderr, err := s.runner.Run([]string{"mcp", "list"})
 	if err != nil {
@@ -19,8 +29,8 @@ func (s *Service) ListMCP() ([]MCPServer, error) {
 		if line == "" {
 			continue
 		}
-		// Quitar el símbolo inicial (✓, ✗, ●, ...).
-		line = strings.TrimLeft(line, "✓✗●◦▪▸✓✔ ")
+		// Quitar cualquier símbolo inicial (✓, ✗, ●, ○, ...).
+		line = strings.TrimLeftFunc(line, isMCPMarker)
 		if line == "" {
 			continue
 		}

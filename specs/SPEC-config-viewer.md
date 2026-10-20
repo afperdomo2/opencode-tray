@@ -77,7 +77,7 @@ func (s *Service) OpenInEditor(path string) error {
 ## Testing Strategy
 
 - **Go `testing`**: mockeando el runner de comandos y con archivos temporales. Casos:
-  - `ListMCP` parsea la salida de `opencode mcp list` (incluido "needs authentication").
+  - `ListMCP` parsea la salida de `opencode mcp list` ignorando los marcadores (`✓`, `✗`, `●`, `○`) y conserva estados como `needs authentication` o `disabled`.
   - `ConfigJSON` lee un `opencode.jsonc` de prueba y enmascara keys/tokens.
   - `ConfigPath` resuelve la ruta correcta (homedir; verificable con variable de entorno fake).
   - `OpenInEditor` elige `code` si existe, si no el fallback (PATH fakeado).
@@ -98,7 +98,7 @@ func (s *Service) OpenInEditor(path string) error {
 
 ## Success Criteria
 
-- [ ] Se listan los MCP (globales) con su estado de conexión.
+- [ ] Se listan los MCP (globales) con su estado de conexión y el nombre limpio, sin el marcador de estado.
 - [ ] Se listan skills y agents.
 - [ ] El visor muestra el `opencode.json(c)` global con secretos enmascarados.
 - [ ] "Abrir en editor" usa VS Code si existe; si no, el editor por defecto.

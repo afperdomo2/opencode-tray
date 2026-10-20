@@ -108,8 +108,9 @@
 ## Fase 3c — config-viewer
 
 - [x] **Task: Listado MCP/skills/agents**
+  - **Hecho:** `ListMCP` ignora los marcadores Unicode de estado (`✓`, `✗`, `●`, `○`) para que el nombre nunca se mezcle con el estado.
   - Acceptance: `ListMCP/ListSkills/ListAgents` devuelven las listas (MCP con estado de conexión).
-  - Verify: `go test` parseando salida de `opencode mcp list`.
+  - Verify: `go test` parseando salida de `opencode mcp list` (incluye `○ github disabled`).
   - Files: `internal/configviewer/mcp.go`, `internal/configviewer/catalog.go`, `*_test.go`.
 
 - [x] **Task: Config JSON + enmascarado de secretos**

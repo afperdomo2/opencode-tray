@@ -33,7 +33,6 @@
     "loading": "Cargando consumo…",
     "error": "No se pudo leer el consumo de OpenCode Go.",
     "noToken": "Sin token de OpenCode Go. Ejecuta /connect en OpenCode o pega la API key en Ajustes.",
-    "updating": "Actualizando…",
     "staleError": "No se pudo actualizar. Mostrando los últimos datos.",
     "reloading": "Leyendo token…",
     "reloadFromOpenCode": "Reintentar leyendo de OpenCode",
@@ -88,6 +87,7 @@
     "networkWarning": "Cualquiera en tu red local puede intentar conectarse. Usa una contraseña fuerte.",
     "remoteWarning": "El servidor está expuesto a Internet vía OpenTunnel. El acceso requiere contraseña.",
     "urls": "URLs de acceso",
+    "refreshHint": "Actualizar estado y URLs de acceso",
     "noUrls": "Sin URLs disponibles. Inicia el servicio.",
     "kind": {
       "local": "Local",

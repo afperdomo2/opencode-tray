@@ -43,8 +43,26 @@ type App struct {
 	// Watcher que mantiene el tooltip al día aunque el panel nunca se abra.
 	watcherStop chan struct{}
 
-	// Reloj inyectable para tests del tooltip.
+	// Caché de corta duración del estado del servicio. Resumen pide
+	// ServiceStatus y WebAccessState en paralelo: ambos comparten una sola
+	// lectura del CLI (singleflight + TTL).
+	statusMu     sync.Mutex
+	statusCache  servicecontrol.Status
+	statusAt     time.Time
+	statusOK     bool
+	statusGen    uint64
+	statusFlight *statusFlight
+	statusTTL    time.Duration
+
+	// Reloj inyectable para tests del tooltip y la caché.
 	now func() time.Time
+}
+
+// statusFlight es una lectura de estado en curso que otros llamadores esperan.
+type statusFlight struct {
+	done  chan struct{}
+	value servicecontrol.Status
+	err   error
 }
 
 // NewApp crea la App con sus dependencias del backend.
@@ -66,6 +84,7 @@ func NewApp() *App {
 		webaccess: webaccess.New(svc),
 		cfgviewer: configviewer.New(),
 		notifier:  notifications.New(),
+		statusTTL: time.Second,
 		now:       time.Now,
 	}
 	app.loadManualUsageToken()
@@ -244,9 +263,55 @@ type ServiceStatusResult struct {
 	URL     string `json:"url"`
 }
 
+// cachedStatus lee el estado del servicio con TTL corto y singleflight: las
+// llamadas concurrentes comparten una sola ejecución de `opencode service
+// status`. La caché se invalida tras cada mutación del servicio.
+func (a *App) cachedStatus() (servicecontrol.Status, error) {
+	a.statusMu.Lock()
+	if a.statusOK && a.clock().Sub(a.statusAt) < a.statusTTL {
+		value := a.statusCache
+		a.statusMu.Unlock()
+		return value, nil
+	}
+	if flight := a.statusFlight; flight != nil {
+		a.statusMu.Unlock()
+		<-flight.done
+		return flight.value, flight.err
+	}
+	gen := a.statusGen
+	flight := &statusFlight{done: make(chan struct{})}
+	a.statusFlight = flight
+	a.statusMu.Unlock()
+
+	value, err := a.service.Status()
+
+	a.statusMu.Lock()
+	flight.value, flight.err = value, err
+	if gen == a.statusGen && err == nil {
+		a.statusCache = value
+		a.statusAt = a.clock()
+		a.statusOK = true
+	}
+	if a.statusFlight == flight {
+		a.statusFlight = nil
+	}
+	close(flight.done)
+	a.statusMu.Unlock()
+	return value, err
+}
+
+// invalidateStatusCache descarta el estado cacheado (tras start/stop/config).
+func (a *App) invalidateStatusCache() {
+	a.statusMu.Lock()
+	a.statusGen++
+	a.statusOK = false
+	a.statusFlight = nil
+	a.statusMu.Unlock()
+}
+
 // ServiceStatus devuelve el estado del servicio de fondo.
 func (a *App) ServiceStatus() (ServiceStatusResult, error) {
-	st, err := a.service.Status()
+	st, err := a.cachedStatus()
 	if err != nil {
 		return ServiceStatusResult{}, err
 	}
@@ -254,13 +319,22 @@ func (a *App) ServiceStatus() (ServiceStatusResult, error) {
 }
 
 // ServiceStart arranca el servicio.
-func (a *App) ServiceStart() error { return a.service.Start() }
+func (a *App) ServiceStart() error { return a.runServiceAction(a.service.Start) }
 
 // ServiceStop intenta detener el servicio normalmente.
-func (a *App) ServiceStop() error { return a.service.Stop() }
+func (a *App) ServiceStop() error { return a.runServiceAction(a.service.Stop) }
 
 // ServiceForceStop detiene el servicio de forma fiable (workaround del bug).
-func (a *App) ServiceForceStop() error { return a.service.ForceStop() }
+func (a *App) ServiceForceStop() error { return a.runServiceAction(a.service.ForceStop) }
+
+// runServiceAction invalida la caché antes y después de una mutación: el
+// estado anterior ya no es válido y el nuevo debe leerse del CLI.
+func (a *App) runServiceAction(fn func() error) error {
+	a.invalidateStatusCache()
+	err := fn()
+	a.invalidateStatusCache()
+	return err
+}
 
 // --- Consumo (usage) ---
 
@@ -470,11 +544,18 @@ func (a *App) invalidateUsageLocked() {
 
 // WebAccessApplyMode aplica un modo: "local", "network" o "remote".
 func (a *App) WebAccessApplyMode(mode string) error {
-	return a.webaccess.ApplyMode(webaccess.Mode(mode))
+	a.invalidateStatusCache()
+	err := a.webaccess.ApplyMode(webaccess.Mode(mode))
+	a.invalidateStatusCache()
+	return err
 }
 
 // WebAccessState devuelve el modo activo, el estado del servicio y las URLs.
-func (a *App) WebAccessState() (webaccess.State, error) { return a.webaccess.State() }
+// Reutiliza el estado cacheado para no repetir `service status`.
+func (a *App) WebAccessState() (webaccess.State, error) {
+	st, _ := a.cachedStatus()
+	return a.webaccess.StateWithStatus(st)
+}
 
 // WebAccessOpenURL abre una URL de acceso validada en el navegador del sistema.
 func (a *App) WebAccessOpenURL(raw string) error {
@@ -500,7 +581,10 @@ func (a *App) WebAccessCurrentPassword() (string, error) { return a.webaccess.Cu
 
 // WebAccessChangePassword cambia la contraseña y reinicia el servicio.
 func (a *App) WebAccessChangePassword(newPw string) error {
-	return a.webaccess.ChangePassword(newPw)
+	a.invalidateStatusCache()
+	err := a.webaccess.ChangePassword(newPw)
+	a.invalidateStatusCache()
+	return err
 }
 
 // --- Config (config-viewer) ---

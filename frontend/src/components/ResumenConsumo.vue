@@ -21,7 +21,6 @@ const usageErrorLabel = computed(() =>
 const showTokenRetry = computed(() => isTokenError(usageError.value))
 const usingManualToken = computed(() => usage.tokenStatus.value?.source === 'manual')
 const hasUsageData = computed(() => usage.data.value !== undefined)
-const isUpdating = computed(() => usage.isFetching.value && !usageError.value)
 
 function sev(pct: number): string {
   if (pct >= 98) return 'crit'
@@ -71,7 +70,6 @@ function retryToken() {
           </div>
           <span class="bar-pct" :class="sev(w.pct)">{{ Math.round(w.pct) }}%</span>
         </div>
-        <p v-if="isUpdating" class="usage-status" role="status">{{ t('usage.updating') }}</p>
       </template>
 
       <div v-if="usageError" class="error-block">

@@ -27,9 +27,12 @@ func (s *Service) Restart() error
 
 // Configuración del servicio (para web-access)
 func (s *Service) Get(key string) (string, error)     // hostname, port, password, remote, cors…
+func (s *Service) Snapshot() (map[string]string, error) // una sola llamada: `opencode service get`
 func (s *Service) Set(key, value string) error
 func (s *Service) Unset(key string) error
 ```
+
+> **Snapshot (Iteración 3):** añadido para que `web-access` lea la configuración en **una sola** invocación del CLI en lugar de una por clave. Devuelve strings y **no incluye la contraseña**. El CLI omite las claves con valor por defecto (p. ej. `remote`), así que la ausencia se interpreta como default. Si el parseo falla, el consumidor cae a `Get()` por clave.
 
 `web-access` usará `Set("hostname", ...)`, `Set("port", ...)`, `SetPassword` y `Start/Stop`; el contrato vive aquí.
 
@@ -46,6 +49,7 @@ opencode service status
 opencode service start
 opencode service stop
 opencode service restart
+opencode service get                      # snapshot JSON (todas las claves, sin contraseña)
 opencode service get <key>
 opencode service set <key> <value>
 opencode service unset <key>

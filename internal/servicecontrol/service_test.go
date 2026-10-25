@@ -181,6 +181,41 @@ func TestConfigGetSetUnset(t *testing.T) {
 	}
 }
 
+func TestSnapshotParsesConfigInOneCall(t *testing.T) {
+	r := &mockRunner{responses: map[string]mockResult{
+		"service get": {stdout: `{"remoteAccepted":true,"hostname":"0.0.0.0","port":45278,"remote":true}`},
+	}}
+	s := NewWithRunner(r, nil)
+
+	cfg, err := s.Snapshot()
+	if err != nil {
+		t.Fatalf("Snapshot() error: %v", err)
+	}
+	if cfg["hostname"] != "0.0.0.0" {
+		t.Errorf("hostname = %q", cfg["hostname"])
+	}
+	if cfg["port"] != "45278" {
+		t.Errorf("port = %q", cfg["port"])
+	}
+	if cfg["remote"] != "true" {
+		t.Errorf("remote = %q", cfg["remote"])
+	}
+	if len(r.calls) != 1 || strings.Join(r.calls[0], " ") != "service get" {
+		t.Errorf("calls = %v, want [[service get]]", r.calls)
+	}
+}
+
+func TestSnapshotInvalidJSON(t *testing.T) {
+	r := &mockRunner{responses: map[string]mockResult{
+		"service get": {stdout: "no es json"},
+	}}
+	s := NewWithRunner(r, nil)
+
+	if _, err := s.Snapshot(); err == nil {
+		t.Error("Snapshot() debería fallar con JSON inválido")
+	}
+}
+
 func TestStartPassesArgs(t *testing.T) {
 	r := &mockRunner{responses: map[string]mockResult{
 		"service start": {},

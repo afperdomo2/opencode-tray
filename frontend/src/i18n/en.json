@@ -33,7 +33,6 @@
     "loading": "Loading usage…",
     "error": "Could not read OpenCode Go usage.",
     "noToken": "No OpenCode Go token. Run /connect in OpenCode or paste the API key in Settings.",
-    "updating": "Updating…",
     "staleError": "Could not update. Showing the last data.",
     "reloading": "Reading token…",
     "reloadFromOpenCode": "Retry reading from OpenCode",
@@ -88,6 +87,7 @@
     "networkWarning": "Anyone on your local network can try to connect. Use a strong password.",
     "remoteWarning": "The server is exposed to the Internet via OpenTunnel. Access requires a password.",
     "urls": "Access URLs",
+    "refreshHint": "Refresh status and access URLs",
     "noUrls": "No URLs available. Start the service.",
     "kind": {
       "local": "Local",

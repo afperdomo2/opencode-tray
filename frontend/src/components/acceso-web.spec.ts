@@ -4,6 +4,7 @@ import { createI18n } from 'vue-i18n'
 import es from '../i18n/es.json'
 import en from '../i18n/en.json'
 import AccesoWeb from './AccesoWeb.vue'
+import { clearQueryCache } from '../lib/query'
 
 const mocks = vi.hoisted(() => ({
   state: vi.fn(),
@@ -41,6 +42,7 @@ function localState() {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  clearQueryCache()
   mocks.username.mockResolvedValue('opencode')
   mocks.password.mockResolvedValue('secreto')
   mocks.clipboard.mockResolvedValue(true)
@@ -126,6 +128,48 @@ describe('AccesoWeb', () => {
     await flushPromises()
 
     expect(mocks.applyMode).toHaveBeenCalledWith('local')
+  })
+
+  it('reutiliza el estado cacheado al remontar (sin skeleton ni refetch)', async () => {
+    mocks.state.mockResolvedValue(localState())
+
+    const first = mount(AccesoWeb, { global: { plugins: [makeI18n()] } })
+    await flushPromises()
+    expect(mocks.state).toHaveBeenCalledTimes(1)
+    first.unmount()
+
+    const second = mount(AccesoWeb, { global: { plugins: [makeI18n()] } })
+    await flushPromises()
+
+    expect(mocks.state).toHaveBeenCalledTimes(1)
+    expect(second.find('.skeleton-url-row').exists()).toBe(false)
+    expect(second.text()).toContain('http://127.0.0.1:45278')
+  })
+
+  it('el refresco manual descarta los datos y muestra skeleton', async () => {
+    mocks.state.mockResolvedValue(localState())
+
+    const w = mount(AccesoWeb, { global: { plugins: [makeI18n()] } })
+    await flushPromises()
+
+    mocks.state.mockReturnValue(new Promise(() => {}))
+    await w.find('.card-action').trigger('click')
+    await flushPromises()
+
+    expect(w.findAll('.skeleton-url-row').length).toBe(2)
+  })
+
+  it('muestra skeleton desde el inicio de un cambio de modo', async () => {
+    mocks.state.mockResolvedValue(localState())
+    mocks.applyMode.mockReturnValue(new Promise(() => {}))
+
+    const w = mount(AccesoWeb, { global: { plugins: [makeI18n()] } })
+    await flushPromises()
+
+    await w.findAll('.mode-btn')[1].trigger('click')
+    await flushPromises()
+
+    expect(w.findAll('.skeleton-url-row').length).toBe(2)
   })
 
   it('deshabilita abrir si el servicio está detenido', async () => {

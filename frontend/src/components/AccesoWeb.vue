@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Icon from './Icon.vue'
 import Skeleton from './Skeleton.vue'
@@ -13,6 +13,12 @@ import {
   WebAccessOpenURL,
 } from '../../wailsjs/go/main/App'
 import { ClipboardSetText } from '../../wailsjs/runtime/runtime'
+import { clearQueries, useQuery } from '../lib/query'
+import {
+  SERVICE_KEY,
+  WEB_ACCESS_KEY,
+  WEB_CREDENTIALS_KEY,
+} from '../lib/query-keys'
 
 interface URLItem {
   url: string
@@ -25,91 +31,129 @@ interface AccessState {
   urls: URLItem[]
 }
 
+interface Credentials {
+  user: string
+  pass: string
+}
+
 const { t } = useI18n()
 
-const state = ref<AccessState>({ mode: 'local', running: false, urls: [] })
-const username = ref('opencode')
-const password = ref('')
+const access = useQuery<AccessState>({
+  key: WEB_ACCESS_KEY,
+  fetcher: async () => (await WebAccessState()) as AccessState,
+  staleTime: 15_000,
+})
+const credentials = useQuery<Credentials>({
+  key: WEB_CREDENTIALS_KEY,
+  fetcher: async () => {
+    const [user, pass] = await Promise.all([
+      WebAccessUsername(),
+      WebAccessCurrentPassword(),
+    ])
+    return { user, pass }
+  },
+  staleTime: 60_000,
+})
+
+const busy = ref(false)
+const mutating = ref(false)
+const manualRefreshing = ref(false)
 const showPassword = ref(false)
 const newPw = ref('')
-const busy = ref(false)
 const saved = ref(false)
 const confirmRemote = ref(false)
 const copiedUrl = ref('')
 const actionError = ref('')
 
-const loadingState = ref(true)
-const loadingCredentials = ref(true)
-const errorState = ref('')
-const errorCredentials = ref('')
+// Último modo conocido: mantiene resaltado el botón correcto mientras el estado
+// se descarta durante una mutación (evita que "salte" a Local).
+const lastMode = ref('local')
 
 let copyTimer: ReturnType<typeof setTimeout> | undefined
 
-const modeDescription = computed(() => t(`web.modeHint.${state.value.mode}`))
-const showWarning = computed(
-  () => state.value.running && (state.value.mode === 'network' || state.value.mode === 'remote'),
+watch(
+  () => access.data.value?.mode,
+  (mode) => {
+    if (mode) lastMode.value = mode
+  },
 )
+
+const mode = computed(() => access.data.value?.mode ?? lastMode.value)
+const running = computed(() => access.data.value?.running ?? false)
+const urls = computed(() => access.data.value?.urls ?? [])
+
+const modeDescription = computed(() => t(`web.modeHint.${mode.value}`))
+const showWarning = computed(
+  () => running.value && (mode.value === 'network' || mode.value === 'remote'),
+)
+
+const loadingState = computed(
+  () => access.isInitialLoading.value || mutating.value,
+)
+const loadingCredentials = computed(
+  () => credentials.isInitialLoading.value || mutating.value,
+)
+const refreshing = computed(
+  () => manualRefreshing.value || mutating.value,
+)
+
+const hasStateData = computed(() => access.data.value !== undefined)
+const errorState = computed(() =>
+  access.error.value ? String(access.error.value) : '',
+)
+const hasCredentialsData = computed(
+  () => credentials.data.value !== undefined,
+)
+const errorCredentials = computed(() =>
+  credentials.error.value ? String(credentials.error.value) : '',
+)
+
+const username = computed(() => credentials.data.value?.user ?? 'opencode')
+const password = computed(() => credentials.data.value?.pass ?? '')
 
 // Anchos escalonados para que el skeleton no se vea como una lista uniforme.
 const skeletonWidths = ['88%', '64%']
-
-async function loadState() {
-  loadingState.value = true
-  errorState.value = ''
-  try {
-    state.value = (await WebAccessState()) as AccessState
-  } catch (e) {
-    errorState.value = String(e)
-  } finally {
-    loadingState.value = false
-  }
-}
-
-async function loadCredentials() {
-  loadingCredentials.value = true
-  errorCredentials.value = ''
-  try {
-    const [user, pass] = await Promise.all([WebAccessUsername(), WebAccessCurrentPassword()])
-    username.value = user
-    password.value = pass
-  } catch (e) {
-    errorCredentials.value = String(e)
-  } finally {
-    loadingCredentials.value = false
-  }
-}
-
-async function refresh() {
-  await Promise.all([loadState(), loadCredentials()])
-}
-onMounted(refresh)
 
 onBeforeUnmount(() => {
   if (copyTimer !== undefined) clearTimeout(copyTimer)
 })
 
-function selectMode(mode: string) {
-  if (mode === 'remote') {
+async function refresh() {
+  actionError.value = ''
+  manualRefreshing.value = true
+  try {
+    await Promise.all([access.refetchHard(), credentials.refetchHard()])
+  } finally {
+    manualRefreshing.value = false
+  }
+}
+
+function selectMode(next: string) {
+  if (next === 'remote') {
     confirmRemote.value = true
     return
   }
-  void applyMode(mode)
+  void applyMode(next)
 }
 
-async function applyMode(mode: string) {
+async function applyMode(next: string) {
   busy.value = true
-  errorState.value = ''
   actionError.value = ''
   saved.value = false
   confirmRemote.value = false
+  // Refresco duro desde el inicio: el estado anterior deja de ser válido.
+  lastMode.value = next
+  mutating.value = true
+  clearQueries([WEB_ACCESS_KEY, SERVICE_KEY])
   try {
-    await WebAccessApplyMode(mode)
-    await loadState()
+    await WebAccessApplyMode(next)
   } catch (e) {
-    errorState.value = String(e)
+    actionError.value = String(e)
   } finally {
     busy.value = false
   }
+  await access.refetch()
+  mutating.value = false
 }
 
 async function openUrl(url: string) {
@@ -142,18 +186,21 @@ async function copyUrl(url: string) {
 async function changePassword() {
   if (!newPw.value) return
   busy.value = true
-  errorCredentials.value = ''
+  actionError.value = ''
   saved.value = false
+  mutating.value = true
+  clearQueries([WEB_ACCESS_KEY, WEB_CREDENTIALS_KEY, SERVICE_KEY])
   try {
     await WebAccessChangePassword(newPw.value)
     newPw.value = ''
-    saved.value = true
-    await loadCredentials()
   } catch (e) {
-    errorCredentials.value = String(e)
+    actionError.value = String(e)
   } finally {
     busy.value = false
   }
+  await Promise.all([access.refetch(), credentials.refetch()])
+  mutating.value = false
+  if (!actionError.value) saved.value = true
 }
 </script>
 
@@ -166,38 +213,49 @@ async function changePassword() {
         <div class="card-head">
           <Icon name="globe" :size="16" />
           <h3>{{ t('web.mode') }}</h3>
+          <button
+            type="button"
+            class="icon-btn card-action"
+            :title="t('web.refreshHint')"
+            :aria-label="t('web.refreshHint')"
+            :disabled="busy || refreshing"
+            :aria-busy="refreshing"
+            @click="refresh"
+          >
+            <Icon name="refresh" :size="15" :class="{ spinning: refreshing }" />
+          </button>
         </div>
 
         <div class="mode-actions" role="group" :aria-label="t('web.mode')">
           <button
             class="btn mode-btn"
-            :class="{ active: state.mode === 'local' }"
+            :class="{ active: mode === 'local' }"
             :disabled="busy"
             :title="t('web.modeHint.local')"
             :aria-label="t('web.modeHint.local')"
-            :aria-pressed="state.mode === 'local'"
+            :aria-pressed="mode === 'local'"
             @click="selectMode('local')"
           >
             <Icon name="server" :size="14" />{{ t('web.local') }}
           </button>
           <button
             class="btn mode-btn"
-            :class="{ active: state.mode === 'network' }"
+            :class="{ active: mode === 'network' }"
             :disabled="busy"
             :title="t('web.modeHint.network')"
             :aria-label="t('web.modeHint.network')"
-            :aria-pressed="state.mode === 'network'"
+            :aria-pressed="mode === 'network'"
             @click="selectMode('network')"
           >
             <Icon name="globe" :size="14" />{{ t('web.network') }}
           </button>
           <button
             class="btn mode-btn"
-            :class="{ active: state.mode === 'remote' }"
+            :class="{ active: mode === 'remote' }"
             :disabled="busy"
             :title="t('web.modeHint.remote')"
             :aria-label="t('web.modeHint.remote')"
-            :aria-pressed="state.mode === 'remote'"
+            :aria-pressed="mode === 'remote'"
             @click="selectMode('remote')"
           >
             <Icon name="cloud" :size="14" />{{ t('web.remote') }}
@@ -205,13 +263,13 @@ async function changePassword() {
         </div>
 
         <p class="mode-hint">
-          <span v-if="state.mode" class="mode-active">{{ t('web.active') }}</span>
+          <span v-if="mode" class="mode-active">{{ t('web.active') }}</span>
           {{ modeDescription }}
         </p>
 
         <p v-if="showWarning" class="warning" role="status">
           <Icon name="zap" :size="14" />
-          {{ state.mode === 'remote' ? t('web.remoteWarning') : t('web.networkWarning') }}
+          {{ mode === 'remote' ? t('web.remoteWarning') : t('web.networkWarning') }}
         </p>
 
         <h3>{{ t('web.urls') }}</h3>
@@ -224,11 +282,11 @@ async function changePassword() {
             <Skeleton width="30px" height="30px" radius="6px" />
           </div>
         </div>
-        <p v-else-if="errorState" class="error" role="alert">{{ errorState }}</p>
+        <p v-else-if="errorState && !hasStateData" class="error" role="alert">{{ errorState }}</p>
         <template v-else>
-          <p v-if="state.urls.length === 0" class="muted">{{ t('web.noUrls') }}</p>
+          <p v-if="urls.length === 0" class="muted">{{ t('web.noUrls') }}</p>
           <ul v-else class="urls url-list">
-            <li v-for="item in state.urls" :key="item.url" class="url-row">
+            <li v-for="item in urls" :key="item.url" class="url-row">
               <span class="url-badge" :class="'kind-' + item.kind">
                 {{ t('web.kind.' + item.kind) }}
               </span>
@@ -236,9 +294,9 @@ async function changePassword() {
               <button
                 type="button"
                 class="icon-btn url-action"
-                :disabled="!state.running"
-                :title="state.running ? t('web.open') : t('web.startToOpen')"
-                :aria-label="state.running ? t('web.open') : t('web.startToOpen')"
+                :disabled="!running"
+                :title="running ? t('web.open') : t('web.startToOpen')"
+                :aria-label="running ? t('web.open') : t('web.startToOpen')"
                 @click="openUrl(item.url)"
               >
                 <Icon name="externalLink" :size="15" />
@@ -257,8 +315,9 @@ async function changePassword() {
           <p v-if="copiedUrl" class="ok-msg" role="status" aria-live="polite">
             {{ t('web.copied') }}
           </p>
+          <p v-if="errorState" class="error" role="alert">{{ errorState }}</p>
           <p v-if="actionError" class="error" role="alert">{{ actionError }}</p>
-          <p v-if="!state.running" class="muted">{{ t('web.stoppedHint') }}</p>
+          <p v-if="!running" class="muted">{{ t('web.stoppedHint') }}</p>
         </template>
       </div>
 
@@ -272,20 +331,25 @@ async function changePassword() {
           <span class="sr-only">{{ t('common.loading') }}</span>
           <Skeleton width="60%" height="14px" />
         </div>
-        <p v-else-if="errorCredentials" class="error">{{ errorCredentials }}</p>
-        <p v-else class="muted">
-          {{ username }} ·
-          <code>{{ showPassword ? password : '••••••' }}</code>
-          <button
-            type="button"
-            class="icon-btn"
-            :aria-label="showPassword ? t('web.hide') : t('web.show')"
-            :title="showPassword ? t('web.hide') : t('web.show')"
-            @click="showPassword = !showPassword"
-          >
-            <Icon :name="showPassword ? 'eyeOff' : 'eye'" :size="16" />
-          </button>
+        <p v-else-if="errorCredentials && !hasCredentialsData" class="error">
+          {{ errorCredentials }}
         </p>
+        <template v-else>
+          <p class="muted">
+            {{ username }} ·
+            <code>{{ showPassword ? password : '••••••' }}</code>
+            <button
+              type="button"
+              class="icon-btn"
+              :aria-label="showPassword ? t('web.hide') : t('web.show')"
+              :title="showPassword ? t('web.hide') : t('web.show')"
+              @click="showPassword = !showPassword"
+            >
+              <Icon :name="showPassword ? 'eyeOff' : 'eye'" :size="16" />
+            </button>
+          </p>
+          <p v-if="errorCredentials" class="error">{{ errorCredentials }}</p>
+        </template>
 
         <p class="muted session-hint">{{ t('web.sessionHint') }}</p>
 

@@ -4,7 +4,8 @@ import { createI18n } from 'vue-i18n'
 import es from '../i18n/es.json'
 import en from '../i18n/en.json'
 import Resumen from './Resumen.vue'
-import { clearQueryCache, prefetchQuery } from '../lib/query'
+import { clearQueryCache, clearQueryData, prefetchQuery } from '../lib/query'
+import { SERVICE_KEY } from '../lib/query-keys'
 import { USAGE_KEY } from '../lib/usage'
 
 // Mocks de los bindings de Wails (hoisted para poder referenciarlos en el describe).
@@ -240,7 +241,7 @@ describe('Resumen', () => {
     expect(mocks.reload).toHaveBeenCalled()
   })
 
-  it('muestra "Actualizando" durante un refresco con datos previos', async () => {
+  it('sustituye los datos en silencio durante un refresco con datos previos', async () => {
     mocks.usage.mockResolvedValueOnce(usage(10, 20, 30))
     const first = await mountResumen()
     first.unmount()
@@ -254,11 +255,37 @@ describe('Resumen', () => {
 
     const second = await mountResumen()
     expect(second.findAll('.bar-fill').length).toBe(3)
-    expect(second.text()).toContain('Actualizando…')
+    expect(second.text()).not.toContain('Actualizando')
 
     finish(usage(11, 21, 31))
     await flushPromises()
-    expect(second.text()).not.toContain('Actualizando…')
+    expect(second.find('.widget-consumo .bar-pct').text()).toBe('11%')
+    second.unmount()
+  })
+
+  it('comparte el estado del servicio al remontar (sin skeleton ni refetch)', async () => {
+    const first = await mountResumen()
+    expect(mocks.status).toHaveBeenCalledTimes(1)
+    first.unmount()
+
+    const second = await mountResumen()
+    expect(mocks.status).toHaveBeenCalledTimes(1)
+    expect(second.find('.widget-servicio').find('.skeleton').exists()).toBe(false)
+    second.unmount()
+  })
+
+  it('muestra skeleton al invalidar el estado (mutación en otra pestaña)', async () => {
+    const first = await mountResumen()
+    first.unmount()
+
+    clearQueryData(SERVICE_KEY)
+    mocks.status.mockReturnValueOnce(new Promise(() => {}))
+
+    const second = mount(Resumen, { global: { plugins: [makeI18n()] } })
+    await flushPromises()
+
+    expect(second.find('.widget-servicio').find('.skeleton').exists()).toBe(true)
+    second.unmount()
   })
 
   it('conserva las barras y avisa si falla un refresco con datos previos', async () => {

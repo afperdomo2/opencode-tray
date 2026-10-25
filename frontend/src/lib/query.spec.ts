@@ -99,6 +99,43 @@ describe('query cache', () => {
     expect(fetcher).toHaveBeenCalledTimes(2)
   })
 
+  it('el refetch duro descarta los datos y muestra carga hasta recibir los nuevos', async () => {
+    let resolve: (value: { v: number }) => void = () => {}
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce({ v: 1 })
+      .mockImplementationOnce(
+        () =>
+          new Promise<{ v: number }>((r) => {
+            resolve = r
+          }),
+      )
+    const hardProbe = defineComponent({
+      setup() {
+        const q = useQuery<{ v: number }>({ key: 'k7', fetcher, staleTime: 60_000 })
+        return () =>
+          h('div', [
+            h('span', { class: 'data' }, q.data.value ? String(q.data.value.v) : 'empty'),
+            h('span', { class: 'loading' }, q.isInitialLoading.value ? 'loading' : 'ready'),
+            h('button', { onClick: () => void q.refetchHard() }, 'hard'),
+          ])
+      },
+    })
+    const w = mount(hardProbe)
+    await flushPromises()
+    expect(w.find('.data').text()).toBe('1')
+
+    await w.find('button').trigger('click')
+    await flushPromises()
+    expect(w.find('.data').text()).toBe('empty')
+    expect(w.find('.loading').text()).toBe('loading')
+
+    resolve({ v: 2 })
+    await flushPromises()
+    expect(w.find('.data').text()).toBe('2')
+    expect(w.find('.loading').text()).toBe('ready')
+  })
+
   it('hace polling con el intervalo configurado y lo detiene al desmontar', async () => {
     vi.useFakeTimers()
     const fetcher = vi.fn().mockResolvedValue({ v: 1 })

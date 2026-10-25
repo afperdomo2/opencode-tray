@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Icon from './Icon.vue'
 import Modal from './Modal.vue'
@@ -14,56 +14,66 @@ import {
   ConfigOpenInEditor,
   ConfigOpenDir,
 } from '../../wailsjs/go/main/App'
+import { clearQueries, useQuery } from '../lib/query'
+import { MCP_KEY, SERVICE_KEY, WEB_ACCESS_KEY } from '../lib/query-keys'
 
 // Sección unificada: control del servicio + configuración (MCP / JSON).
-// Servicio y configuración cargan en paralelo, cada uno con su propio estado.
+// El estado y los MCP usan el caché compartido con Resumen; el JSON se carga
+// de forma diferida al abrir el modal.
 const { t } = useI18n()
 
-const running = ref(false)
-const url = ref('')
+const status = useQuery({
+  key: SERVICE_KEY,
+  fetcher: ServiceStatus,
+  staleTime: 10_000,
+})
+const mcp = useQuery({
+  key: MCP_KEY,
+  fetcher: ConfigListMCP,
+  staleTime: 60_000,
+})
+
 const busy = ref(false)
-const mcp = ref<{ name: string; status: string }[]>([])
-const configText = ref('')
+const mutating = ref(false)
+const manualRefreshing = ref(false)
+const actionError = ref('')
+
 const showJson = ref(false)
-
-const loadingStatus = ref(true)
-const loadingMcp = ref(true)
-const loadingJson = ref(true)
-const errorStatus = ref('')
-const errorMcp = ref('')
+const configText = ref('')
+const loadingJson = ref(false)
 const errorJson = ref('')
+let jsonLoaded = false
 
-async function loadStatus() {
-  loadingStatus.value = true
-  errorStatus.value = ''
-  try {
-    const s = await ServiceStatus()
-    running.value = s.running
-    url.value = s.url
-  } catch (e) {
-    errorStatus.value = String(e)
-  } finally {
-    loadingStatus.value = false
-  }
-}
+// El estado y el servicio mutado se descartan al iniciar una acción: durante
+// toda la operación (puede tardar segundos) se muestra skeleton, nunca el
+// estado anterior ya inválido.
+const loadingStatus = computed(
+  () => status.isInitialLoading.value || mutating.value,
+)
+const loadingMcp = computed(() => mcp.isInitialLoading.value || mutating.value)
+const refreshing = computed(
+  () => manualRefreshing.value || mutating.value,
+)
 
-async function loadMcp() {
-  loadingMcp.value = true
-  errorMcp.value = ''
-  try {
-    mcp.value = await ConfigListMCP()
-  } catch (e) {
-    errorMcp.value = String(e)
-  } finally {
-    loadingMcp.value = false
-  }
-}
+const running = computed(() => status.data.value?.running ?? false)
+const url = computed(() => status.data.value?.url ?? '')
+const hasStatusData = computed(() => status.data.value !== undefined)
+const errorStatus = computed(() =>
+  status.error.value ? String(status.error.value) : '',
+)
 
-async function loadJson() {
+const servers = computed(() => mcp.data.value ?? [])
+const hasMcpData = computed(() => mcp.data.value !== undefined)
+const errorMcp = computed(() => (mcp.error.value ? String(mcp.error.value) : ''))
+
+async function loadJson(force = false) {
+  if (loadingJson.value) return
+  if (jsonLoaded && !force) return
   loadingJson.value = true
   errorJson.value = ''
   try {
     configText.value = await ConfigJSON()
+    jsonLoaded = true
   } catch (e) {
     errorJson.value = String(e)
   } finally {
@@ -71,24 +81,41 @@ async function loadJson() {
   }
 }
 
-async function refresh() {
-  await Promise.all([loadStatus(), loadMcp(), loadJson()])
+function openJson() {
+  showJson.value = true
+  void loadJson()
 }
-onMounted(refresh)
+
+async function refresh() {
+  actionError.value = ''
+  manualRefreshing.value = true
+  try {
+    await Promise.all([
+      status.refetchHard(),
+      mcp.refetchHard(),
+      jsonLoaded ? loadJson(true) : Promise.resolve(),
+    ])
+  } finally {
+    manualRefreshing.value = false
+  }
+}
 
 async function run(fn: () => Promise<void>) {
   busy.value = true
-  errorStatus.value = ''
+  actionError.value = ''
+  mutating.value = true
+  clearQueries([SERVICE_KEY, WEB_ACCESS_KEY, MCP_KEY])
   try {
     await fn()
-    const s = await ServiceStatus()
-    running.value = s.running
-    url.value = s.url
   } catch (e) {
-    errorStatus.value = String(e)
+    actionError.value = String(e)
   } finally {
     busy.value = false
   }
+  // Leemos el estado real: los datos estaban descartados, así que esto pinta
+  // skeleton hasta que llega la respuesta.
+  await Promise.all([status.refetch(), mcp.refetch()])
+  mutating.value = false
 }
 </script>
 
@@ -108,13 +135,14 @@ async function run(fn: () => Promise<void>) {
           <Skeleton width="120px" height="14px" />
           <Skeleton width="75%" height="12px" />
         </div>
-        <p v-else-if="errorStatus" class="error">{{ errorStatus }}</p>
+        <p v-else-if="errorStatus && !hasStatusData" class="error">{{ errorStatus }}</p>
         <template v-else>
           <div class="status-row">
             <span class="dot" :class="running ? 'on' : 'off'" aria-hidden="true"></span>
             <span>{{ running ? t('service.running') : t('service.stopped') }}</span>
             <span v-if="url" class="url" :title="url">{{ url }}</span>
           </div>
+          <p v-if="errorStatus" class="error">{{ errorStatus }}</p>
         </template>
 
         <div class="actions actions-grid cols-2">
@@ -145,12 +173,16 @@ async function run(fn: () => Promise<void>) {
           <button
             class="btn"
             :title="t('service.refreshHint')"
-            :disabled="busy || loadingStatus"
+            :disabled="busy || refreshing"
+            :aria-busy="refreshing"
             @click="refresh"
           >
-            <Icon name="refresh" :size="14" />{{ t('service.refresh') }}
+            <Icon name="refresh" :size="14" :class="{ spinning: refreshing }" />{{
+              t('service.refresh')
+            }}
           </button>
         </div>
+        <p v-if="actionError" class="error" role="alert">{{ actionError }}</p>
       </div>
 
       <div class="card">
@@ -169,11 +201,11 @@ async function run(fn: () => Promise<void>) {
             <Skeleton width="56px" height="12px" />
           </div>
         </div>
-        <p v-else-if="errorMcp" class="error">{{ errorMcp }}</p>
+        <p v-else-if="errorMcp && !hasMcpData" class="error">{{ errorMcp }}</p>
         <template v-else>
-          <p v-if="mcp.length === 0" class="muted">{{ t('config.empty') }}</p>
-          <ul class="mcp-list">
-            <li v-for="s in mcp" :key="s.name">
+          <p v-if="servers.length === 0" class="muted">{{ t('config.empty') }}</p>
+          <ul v-else class="mcp-list">
+            <li v-for="s in servers" :key="s.name">
               <span
                 class="dot"
                 :class="s.status === 'connected' ? 'on' : 'off'"
@@ -183,6 +215,7 @@ async function run(fn: () => Promise<void>) {
               <span class="muted mcp-status">{{ s.status }}</span>
             </li>
           </ul>
+          <p v-if="errorMcp" class="error">{{ errorMcp }}</p>
         </template>
 
         <div class="actions actions-grid cols-3">
@@ -192,12 +225,7 @@ async function run(fn: () => Promise<void>) {
           <button class="btn" :title="t('config.openDirHint')" @click="ConfigOpenDir">
             <Icon name="folder" :size="14" />{{ t('config.openDir') }}
           </button>
-          <button
-            class="btn"
-            :title="t('config.jsonHint')"
-            :disabled="loadingJson"
-            @click="showJson = true"
-          >
+          <button class="btn" :title="t('config.jsonHint')" @click="openJson">
             <Icon name="code" :size="14" />{{ t('config.json') }}
           </button>
         </div>

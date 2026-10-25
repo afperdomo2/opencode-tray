@@ -500,13 +500,6 @@ h3 {
   margin: 0;
 }
 
-/* Refresco en segundo plano: indicador discreto, sin tapar los datos previos. */
-.usage-status {
-  margin: var(--space-xs) 0 0;
-  color: var(--muted);
-  font-size: 12px;
-}
-
 .error-ctas {
   display: flex;
   flex-wrap: wrap;
@@ -749,6 +742,29 @@ h3 {
 .icon-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* Botón de refresco manual en la cabecera de una card. */
+.card-action {
+  margin-left: auto;
+  min-width: 30px;
+  min-height: 30px;
+  color: var(--muted);
+}
+
+.card-action:hover:not(:disabled) {
+  color: var(--text);
+}
+
+/* Giro del icono de refresco mientras se pide manualmente. */
+.spinning {
+  animation: icon-spin 0.9s linear infinite;
+}
+
+@keyframes icon-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .session-hint {

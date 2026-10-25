@@ -193,3 +193,33 @@ func (s *Service) IsAccessURL(raw string) (bool, error)
 - [ ] Activar remoto requiere confirmación.
 - [ ] Tests y build en verde.
 
+
+---
+
+# Iteración 3 — refresco y latencia
+
+## Objetivo
+
+Que volver a “Acceso web” no repita lecturas ni muestre skeleton, que el refresco manual y las mutaciones sí lo muestren, y reducir el número de procesos del CLI por lectura.
+
+## Frontend
+
+- `AccesoWeb.vue` usa `useQuery` con claves compartidas (`web-access` 15 s, `web-credentials` 60 s).
+- Botón de refresco en la cabecera de la tarjeta de URLs: refresco **duro** (skeleton en ambas tarjetas) y botón deshabilitado con icono girando solo durante esa acción.
+- Cambiar modo o contraseña: skeleton **desde el inicio** de la operación (el servicio se reinicia). El último modo conocido se conserva para que los botones Local/Red/Remoto no salten.
+- Error de revalidación con datos previos: se conserva la lista y se muestra el aviso; no se sustituye por skeleton.
+- El JSON del servicio no forma parte de esta vista.
+
+## Backend (`webaccess`)
+
+- `State()` hace **una sola** lectura de `service status` y **una sola** lectura de configuración (`opencode service get`, JSON), con fallback a `Get()` por clave si el parseo falla. Las claves ausentes son defaults (`remote=false`, `hostname=127.0.0.1`).
+- `StateWithStatus(st)` permite reutilizar un estado ya leído por `App`.
+- `/api/info` se consulta **solo** en modo red/remoto (IPs LAN reales y enlace del túnel). En local basta la URL que devuelve `service status`.
+- `App` cachea el estado del servicio con TTL de 1 s y singleflight; invalida la caché en `ServiceStart/Stop/ForceStop`, `WebAccessApplyMode` y `WebAccessChangePassword`.
+
+## Success Criteria
+
+- [ ] Volver a la pestaña con datos frescos no hace petición ni muestra skeleton.
+- [ ] Refrescar y cambiar modo/contraseña muestran skeleton desde el inicio.
+- [ ] `WebAccessState` = 1 status + 1 config; `/api/info` no se llama en local.
+- [ ] Tests Go/Vitest verdes.

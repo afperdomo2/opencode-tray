@@ -571,3 +571,45 @@
   - Acceptance: documentación y build de producción coherentes.
   - Verify: suite completa + captura visual.
   - Files: `README.md`, `specs/SPEC-resumen.md`, `specs/CAPABILITY-MAP.md`, `tasks/plan.md`, `tasks/todo.md`.
+
+---
+
+## Fase 18 — frescura de datos, skeletons y latencia
+
+> Specs: `SPEC-resumen.md` (Iteración 3), `SPEC-web-access.md` (Iteración 3), `SPEC-service-control.md` (Snapshot) y `SPEC-ui-ux.md` (Iteración 3). Sin dependencias nuevas.
+
+- [x] **Task: Caché compartido y dos tipos de refresco**
+  - **Hecho:** `query.ts` separa `refetch()` (suave: conserva datos) de `refetchHard()` (duro: descarta y muestra skeleton). `clearQueries`/`invalidateQueries` permiten invalidar por lote. Claves unificadas en `lib/query-keys.ts`.
+  - Acceptance: volver a una pestaña con datos frescos no hace petición ni pinta skeleton; un refresco duro sí muestra skeleton.
+  - Verify: `query.spec.ts`.
+  - Files: `frontend/src/lib/query.ts`, `frontend/src/lib/query-keys.ts`, `frontend/src/lib/query.spec.ts`.
+
+- [x] **Task: Servicio con caché y skeletons correctos**
+  - **Hecho:** `Servicio.vue` usa `useQuery` (estado 10 s, MCP 60 s); JSON diferido al abrir el modal; refresco manual con skeleton; mutaciones descartan estado desde el inicio.
+  - Acceptance: primera carga y refresco manual/mutación con skeleton; revalidaciones silenciosas conservan datos; error con datos no borra el contenido.
+  - Verify: `servicio.spec.ts`.
+  - Files: `frontend/src/components/Servicio.vue`, `frontend/src/components/servicio.spec.ts`, i18n es/en.
+
+- [x] **Task: Acceso web con caché, refresco y mutaciones**
+  - **Hecho:** `AccesoWeb.vue` usa `useQuery` (estado 15 s, credenciales 60 s); botón de refresco en la cabecera; cambio de modo/contraseña con skeleton desde el inicio y conservación del modo activo.
+  - Acceptance: volver a la pestaña no repite petición ni skeleton; refrescar y mutar sí muestran skeleton; el botón de modo no salta.
+  - Verify: `acceso-web.spec.ts`.
+  - Files: `frontend/src/components/AccesoWeb.vue`, `frontend/src/components/acceso-web.spec.ts`, `frontend/src/style.css`, i18n es/en.
+
+- [x] **Task: Resumen sincronizado con las acciones**
+  - **Hecho:** claves compartidas, polling silencioso del servicio cada 15 s, aviso de “servicio detenido” derivado del estado compartido y sin botón de refresco. Se eliminó el texto “Actualizando…” de Consumo.
+  - Acceptance: tras detener el servicio en Servicio, al volver a Resumen el widget muestra “Detenido” (skeleton mientras llega el estado); el polling no pinta skeleton.
+  - Verify: `resumen.spec.ts`.
+  - Files: `frontend/src/components/Resumen.vue`, `frontend/src/components/ResumenConsumo.vue`, i18n es/en.
+
+- [x] **Task: Backend — una lectura de estado y una de configuración**
+  - **Hecho:** `servicecontrol.Snapshot()` lee `opencode service get` una vez; `webaccess.State` reutiliza un solo `service status` y solo consulta `/api/info` en red/remoto. `App` cachea el estado 1 s con singleflight e invalida en start/stop/force-stop/modo/contraseña.
+  - Acceptance: `WebAccessState` deja de lanzar 6 procesos; Resumen no duplica `service status` en llamadas paralelas.
+  - Verify: `go test ./...` (conteo de llamadas y TTL).
+  - Files: `internal/servicecontrol/config.go`, `internal/servicecontrol/service_test.go`, `internal/webaccess/urls.go`, `internal/webaccess/webaccess.go`, `internal/webaccess/webaccess_test.go`, `app.go`, `app_test.go`.
+
+- [x] **Task: Documentar y validar**
+  - **Hecho:** README, specs, `CAPABILITY-MAP`, plan y todo sincronizados; `go test ./...`, `pnpm test`, `pnpm build` y `wails build` en verde.
+  - Acceptance: documentación y build de producción coherentes.
+  - Verify: suites + build completo.
+  - Files: `README.md`, `specs/*.md`, `tasks/plan.md`, `tasks/todo.md`.

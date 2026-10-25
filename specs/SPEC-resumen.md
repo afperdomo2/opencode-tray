@@ -170,3 +170,47 @@ Que el inicio se sienta como un panel de widgets de móvil: información escanea
 - [ ] MCP no repite el estado textual por item.
 - [ ] Los widgets navegables funcionan con ratón y teclado.
 - [ ] Tests y build en verde.
+
+---
+
+# Iteración 3 — frescura de datos, skeletons y latencia
+
+> Traza a `resumen`, `ui-ux`, `web-access` y `service-control`. Sin dependencias nuevas.
+
+## Objetivo
+
+Eliminar skeletons y peticiones innecesarias al navegar entre pestañas, mantener Resumen sincronizado con las acciones de Servicio/Acceso y reducir el coste real de las lecturas del CLI.
+
+## Política de carga (única para todas las vistas)
+
+| Disparador | ¿Petición? | ¿Skeleton? | Datos previos |
+|---|---|---|---|
+| Primera carga (sin caché) | sí | **sí** | — |
+| Volver a una pestaña con datos frescos (10–15 s) | no | no | se muestran |
+| Volver con datos stale | sí, silenciosa | no | se muestran y se sustituyen |
+| Polling del servicio cada 15 s | sí, silenciosa | no | se muestran y se sustituyen |
+| Botón Refrescar (Servicio / Acceso web) | sí, forzada | **sí** | se descartan |
+| Mutación (start/stop/forzar/modo/contraseña) | sí | **sí, desde el inicio** | se descartan |
+| Error en revalidación silenciosa | — | no | se conservan + aviso |
+
+- Sin textos de “Actualizando…”: los datos se sustituyen en silencio. La única señal es el botón pulsado (deshabilitado + icono girando).
+- Resumen **no** tiene botón de refresco.
+
+## Implementación
+
+- `frontend/src/lib/query.ts`: `refetch()` (suave) y `refetchHard()` (descarta datos y provoca skeleton); `clearQueries`/`invalidateQueries`; generación por key para que una petición en vuelo no restaure datos obsoletos.
+- `frontend/src/lib/query-keys.ts`: keys compartidas (`service-status`, `mcp-list`, `web-access`, `web-credentials`).
+- `Servicio.vue`: estado (10 s) + MCP (60 s) vía `useQuery`, JSON diferido al abrir el modal, refresco manual con skeleton y mutaciones que descartan el estado desde el inicio.
+- `AccesoWeb.vue`: estado (15 s) + credenciales (60 s), botón de refresco con skeleton, mutaciones con skeleton desde el inicio y conservación del modo activo.
+- `Resumen.vue`: mismas keys, polling silencioso del servicio (15 s, pausado con el panel oculto) y “servicio detenido” derivado del estado compartido.
+- `ResumenConsumo.vue`: se elimina el texto “Actualizando…” del polling.
+- Backend: ver `SPEC-web-access.md` y `SPEC-service-control.md` (una sola lectura de estado/config y caché TTL de 1 s).
+
+## Success Criteria
+
+- [ ] Navegar entre pestañas con datos frescos no repite petición ni muestra skeleton.
+- [ ] Refresco manual y mutaciones muestran skeleton desde su inicio.
+- [ ] Tras detener el servicio en Servicio, Resumen muestra “Detenido”.
+- [ ] El polling y las revalidaciones silenciosas nunca muestran skeleton ni texto de actualización.
+- [ ] `WebAccessState` no repite `service status` ni consulta `/api/info` en modo local.
+- [ ] Tests Vitest/Go y builds en verde.

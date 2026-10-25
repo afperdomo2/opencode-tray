@@ -10,6 +10,10 @@ import {
 // Caché nativo de datos de servidor (estilo TanStack Query, sin dependencias).
 // El estado vive a nivel de módulo: sobrevive al desmontaje de los componentes
 // (App.vue usa v-if), evitando skeletons y peticiones repetidas al navegar.
+//
+// Dos caminos de revalidación:
+//   · refetch()      → suave: conserva los datos visibles (polling, foco, remontaje).
+//   · refetchHard()  → duro: descarta los datos y muestra skeleton (botón o mutación).
 
 interface QueryState<T> {
   data: T | undefined
@@ -32,12 +36,16 @@ export interface QueryResult<T> {
   isInitialLoading: ComputedRef<boolean>
   updatedAt: ComputedRef<number>
   refetch: () => Promise<void>
+  refetchHard: () => Promise<void>
 }
 
 const DEFAULT_STALE_MS = 60_000
 
 const states = new Map<string, QueryState<unknown>>()
 const inflight = new Map<string, Promise<unknown>>()
+// Generación por key: al descartar datos invalidamos la petición en vuelo para
+// que su resultado (ya obsoleto) no sobrescriba el estado nuevo.
+const generations = new Map<string, number>()
 
 function stateFor<T>(key: string): QueryState<T> {
   let state = states.get(key)
@@ -46,6 +54,10 @@ function stateFor<T>(key: string): QueryState<T> {
     states.set(key, state)
   }
   return state as QueryState<T>
+}
+
+function generationOf(key: string): number {
+  return generations.get(key) ?? 0
 }
 
 function toError(e: unknown): Error {
@@ -59,30 +71,38 @@ function execute<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
   if (current) return current as Promise<T>
 
   const state = stateFor<T>(key)
+  const gen = generationOf(key)
   state.isFetching = true
 
   const promise = Promise.resolve()
     .then(() => fetcher())
     .then((data) => {
-      state.data = data
-      state.error = null
-      state.updatedAt = Date.now()
+      if (gen === generationOf(key)) {
+        state.data = data
+        state.error = null
+        state.updatedAt = Date.now()
+      }
       return data
     })
     .catch((e: unknown) => {
-      state.error = toError(e)
+      if (gen === generationOf(key)) state.error = toError(e)
       throw e
     })
     .finally(() => {
-      state.isFetching = false
-      inflight.delete(key)
+      if (gen === generationOf(key)) state.isFetching = false
+      if (inflight.get(key) === promise) inflight.delete(key)
     })
 
   inflight.set(key, promise)
   return promise
 }
 
-async function refetchKey<T>(key: string, fetcher: () => Promise<T>): Promise<void> {
+async function refetchKey<T>(
+  key: string,
+  fetcher: () => Promise<T>,
+  hard = false,
+): Promise<void> {
+  if (hard) clearQueryData(key)
   try {
     await execute(key, fetcher)
   } catch {
@@ -150,13 +170,41 @@ export function useQuery<T>(options: QueryOptions<T>): QueryResult<T> {
     isInitialLoading: computed(() => state.data === undefined && state.isFetching),
     updatedAt: computed(() => state.updatedAt),
     refetch: () => refetchKey(key, fetcher),
+    refetchHard: () => refetchKey(key, fetcher, true),
   }
 }
 
-// invalidate marca los datos como stale; no borra el contenido visible.
+// invalidateQuery marca los datos como stale; no borra el contenido visible.
 export function invalidateQuery(key: string) {
   const state = states.get(key)
   if (state) state.updatedAt = 0
+}
+
+// invalidateQueries invalida varias keys a la vez.
+export function invalidateQueries(keys: string[]) {
+  keys.forEach(invalidateQuery)
+}
+
+// clearQueryData descarta los datos de una key: el próximo render con la query
+// mostrará skeleton (primera carga o refresco duro). También invalida cualquier
+// petición en vuelo para que no restaure datos obsoletos.
+export function clearQueryData(key: string) {
+  generations.set(key, generationOf(key) + 1)
+  inflight.delete(key)
+
+  const state = states.get(key)
+  if (!state) return
+  state.data = undefined
+  state.error = null
+  state.updatedAt = 0
+  // Se considera "pendiente" hasta que arranque (o falle) la recarga: así la
+  // vista que monte durante una mutación pinta skeleton, no un estado vacío.
+  state.isFetching = true
+}
+
+// clearQueries descarta varias keys a la vez (mutaciones).
+export function clearQueries(keys: string[]) {
+  keys.forEach(clearQueryData)
 }
 
 // prefetch calienta la caché sin crear temporizadores ni suscripciones.
@@ -168,4 +216,5 @@ export function prefetchQuery<T>(key: string, fetcher: () => Promise<T>): Promis
 export function clearQueryCache() {
   states.clear()
   inflight.clear()
+  generations.clear()
 }

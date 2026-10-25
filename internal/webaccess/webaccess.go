@@ -37,6 +37,7 @@ type State struct {
 type serviceBackend interface {
 	Set(key, value string) error
 	Get(key string) (string, error)
+	Snapshot() (map[string]string, error)
 	RunRaw(args ...string) (string, error)
 	Start() error
 	Status() (servicecontrol.Status, error)

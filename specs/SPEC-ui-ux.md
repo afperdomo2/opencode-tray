@@ -276,12 +276,12 @@ Evitar skeletons innecesarios y repetir peticiones cuando los datos ya están en
 2. **Polling** según `RefreshMin` (Ajustes), pausado con la ventana oculta; refetch al recuperar foco si está stale.
 3. **OpenCode primero**: export v2 cacheado en memoria → `auth.json` (`opencode`/`opencode-go`) → token manual DPAPI.
 4. **Reintento** automático una vez ante `USAGE_NO_TOKEN`/`USAGE_INVALID_TOKEN`; después botón "Reintentar leyendo de OpenCode" en Resumen y Ajustes.
-5. **Datos previos**: durante un refresco o error nunca se reemplazan los datos por un skeleton; se muestra un indicador discreto.
+5. **Datos previos**: durante un refresco o error nunca se reemplazan los datos por un skeleton; se sustituyen en silencio (ver Iteración 3).
 
 ## Success Criteria
 
 - [ ] Resumen → otra sección → Resumen en <60 s no muestra skeleton ni repite la petición.
-- [ ] Un refresco en segundo plano conserva las barras y muestra "Actualizando…".
+- [ ] Un refresco en segundo plano conserva las barras y las sustituye en silencio (sin texto de actualización).
 - [ ] Token ausente/inválido: reintento automático una vez y botón manual; nunca un bucle.
 - [ ] La API key manual es opcional y se guarda cifrada.
 - [ ] El intervalo de refresco configurado se aplica al polling.
@@ -390,3 +390,28 @@ Eliminar los saltos visuales del panel, mostrar el estado y la URI del servicio 
 - [ ] Resumen muestra estado y URI en la misma fila, con la URI a la derecha.
 - [ ] El contenido largo hace scroll sin mover la nav inferior.
 - [ ] Tests y build en verde.
+
+---
+
+# Iteración 3 — política de carga y frescura
+
+> Canon en `SPEC-resumen.md` (Iteración 3). Aplica a Servicio, Acceso web, Resumen y widgets.
+
+## Regla
+
+- **Skeleton solo** en primera carga, en el refresco manual y desde el inicio de una mutación.
+- **Revalidación silenciosa** (volver a una pestaña con datos stale, polling, foco): se conservan los datos y se sustituyen cuando llegan, sin skeleton ni textos de “Actualizando…”.
+- Refresco manual: botón deshabilitado + icono girando; nunca texto global.
+- Error con datos previos: se conserva el contenido y se muestra un aviso; el error solo sustituye al contenido si no hay datos.
+
+## Componentes
+
+- `frontend/src/lib/query.ts`: `refetch()` suave y `refetchHard()` duro, más `clearQueries`/`invalidateQueries`.
+- `frontend/src/lib/query-keys.ts`: claves compartidas entre Resumen, Servicio y Acceso web.
+- `frontend/src/style.css`: `.card-action` (refresco en cabecera) y `.spinning` (giro del icono).
+
+## Success Criteria
+
+- [ ] No hay textos de “Actualizando…” en ninguna vista.
+- [ ] Los skeletons respetan la regla anterior.
+- [ ] `prefers-reduced-motion` desactiva el giro del icono.

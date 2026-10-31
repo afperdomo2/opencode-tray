@@ -104,7 +104,7 @@ Con instalador per-user: `powershell -ExecutionPolicy Bypass -File scripts\build
 | # | Comprueba | Resultado esperado |
 |---|---|---|
 | 1 | Icono en la bandeja | Aparece (PNG en Linux, ICO en Windows) |
-| 2 | Hover sobre el icono | Tooltip con consumo mensual y reinicio (`OpenCode · Mensual ▰▰▱▱▱ 42% · 🕒 en 4 h`) |
+| 2 | Consumo del mes | Tooltip en Windows/KDE; en GNOME, primera fila del menú (`OpenCode · Mensual ▰▰▱▱▱ 42% · 🕒 en 4 h`) |
 | 3 | Abrir el panel | Resumen con 4 widgets: consumo, servicio, acceso web y MCP |
 | 4 | Pestaña **Servicio** | Estado + URI real y botones iniciar / detener / forzar / refrescar |
 | 5 | Pestaña **Acceso web** | URLs Local / LAN / Remoto con abrir y copiar |
@@ -345,10 +345,11 @@ sudo apt remove opencode-tray
 ### Diferencias respecto a Windows
 
 - **Icono de bandeja**: se embebe `build/linux/icon.png` (64 px) porque la bandeja decodifica PNG/JPEG y no ICO. Windows sigue usando `build/windows/icon.ico`.
-- **Panel**: se coloca en la **esquina inferior derecha** del monitor principal (mejor esfuerzo). Bajo **Wayland** el compositor puede ignorar la posición; en X11/XWayland se respeta (con varios monitores puede quedar en la esquina del lienzo virtual).
+- **Panel**: aparece **centrado** en el monitor principal y se puede **arrastrar** desde la franja superior (en Windows va anclado al icono del tray y no se mueve). Se centra solo la primera vez: conserva la posición que elijas. Bajo Wayland el compositor decide la posición inicial.
 - **Arranque oculto**: Wails ignora `StartHidden` en Linux; la app oculta la ventana en `startup` para arrancar solo con el icono.
-- **Clic en el icono**: en GNOME/AppIndicator usa **Mostrar panel** en el menú del tray.
+- **Clic en el icono**: en GNOME/AppIndicator el clic abre el menú (el escritorio nunca emite `Activate`), así que el panel se abre con **Mostrar panel**, la primera entrada del menú. En KDE/XFCE el clic izquierdo sí abre el panel.
 - **Auto-inicio**: crea `~/.config/autostart/opencode-tray.desktop` (XDG).
+- **Tooltip**: GNOME no dibuja el tooltip del icono; por eso la primera fila del menú muestra el consumo y el reinicio (se actualiza solo). En Windows/KDE el tooltip nativo sigue funcionando.
 - **Secretos**: sin DPAPI, el token manual de OpenCode Go se guarda en **base64** (no cifrado). No lo uses en máquinas compartidas.
 - **Instancia única**: implementada con `flock` + socket en `$XDG_RUNTIME_DIR`; una segunda ejecución pide mostrar el panel y sale.
 - **Notificaciones**: dependen del daemon de notificaciones del escritorio (el envío está deshabilitado en runtime, igual que en Windows).
@@ -358,7 +359,7 @@ sudo apt remove opencode-tray
 <a id="limitaciones"></a>
 ## ⚠️ Limitaciones conocidas
 
-- **Flyout**: el hover solo muestra el tooltip nativo con consumo; no hay preview visual. El panel tampoco se puede redimensionar ni arrastrar por diseño.
+- **Flyout**: no hay preview visual al pasar el cursor (solo tooltip nativo) y no se puede redimensionar. En Windows tampoco se arrastra (va anclado al tray); en Linux sí, desde la franja superior.
 - **Notificaciones**: el **envío** de toasts está deshabilitado en runtime — el mecanismo de Wails entraba en conflicto con el bucle de la bandeja y la dejaba muda. La lógica (ritmo, umbrales, servicio detenido) está implementada y probada; detalle y cómo reactivarlo en [`specs/SPEC-notifications.md`](specs/SPEC-notifications.md).
 - **Fuentes web**: la UI carga IBM Plex Sans + JetBrains Mono desde Google Fonts (`display=swap`); sin red degrada a las fuentes del sistema y la app sigue siendo funcional.
 - **Linux**: sin anclaje real al icono (esquina inferior derecha; Wayland puede ignorarla) y sin cifrado DPAPI para el token manual. Detalle en [`specs/SPEC-shell.md`](specs/SPEC-shell.md) → Iteraciones 10 y 11.

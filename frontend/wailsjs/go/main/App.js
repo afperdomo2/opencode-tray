@@ -34,6 +34,10 @@ export function NotifySetEnabled(arg1, arg2) {
   return window['go']['main']['App']['NotifySetEnabled'](arg1, arg2);
 }
 
+export function Platform() {
+  return window['go']['main']['App']['Platform']();
+}
+
 export function SaveSettings(arg1) {
   return window['go']['main']['App']['SaveSettings'](arg1);
 }

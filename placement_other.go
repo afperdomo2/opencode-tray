@@ -4,18 +4,24 @@ package main
 
 import (
 	"context"
+	"sync/atomic"
 
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"opencode-tray/internal/shell"
 )
 
-// positionFlyout coloca el panel en la esquina inferior derecha del monitor
-// principal. En Linux/macOS no hay una API para leer la geometría del icono de
-// la bandeja, así que se aproxima al comportamiento de un flyout del sistema.
-// Bajo Wayland el compositor puede ignorar la posición: el panel aparecerá
-// donde decida el gestor de ventanas.
+// centered evita volver a centrar el panel: en Linux la ventana se puede
+// arrastrar y esa posición debe conservarse al ocultar y volver a mostrar.
+var centered atomic.Bool
+
+// positionFlyout centra el panel en el monitor principal la primera vez. En
+// Linux no hay API para leer la geometría del icono de la bandeja, y Wayland
+// puede ignorar la posición (el compositor ya la centra).
 func positionFlyout(ctx context.Context, anchor shell.Point, width, height int) {
+	if !centered.CompareAndSwap(false, true) {
+		return
+	}
 	screens, err := wailsruntime.ScreenGetAll(ctx)
 	if err != nil || len(screens) == 0 {
 		return
@@ -33,6 +39,6 @@ func positionFlyout(ctx context.Context, anchor shell.Point, width, height int) 
 		Right:  primary.Size.Width,
 		Bottom: primary.Size.Height,
 	}
-	p := shell.CornerPosition(work, width, height)
+	p := shell.CenterPosition(work, width, height)
 	wailsruntime.WindowSetPosition(ctx, p.X, p.Y)
 }

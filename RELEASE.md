@@ -1,6 +1,16 @@
-# Release — OpenCode Tray v1.3.0
+# Release — OpenCode Tray v1.3.1
 
 App de bandeja (tray) para Windows que controla el servicio de OpenCode, el acceso web, el consumo de OpenCode Go y la configuración.
+
+## Novedades v1.3.1 (Linux/Ubuntu)
+
+- **Paquete `.deb`**: `sudo apt install ./dist/opencode-tray_1.3.1_amd64.deb` instala el binario, el lanzador del menú de aplicaciones y el icono (256 px). Se lanza desde el menú, sin terminal.
+- **Sin pasos de entorno**: la app resuelve el CLI de OpenCode sola (`$OPENCODE_BIN`, `PATH`, `~/.opencode/bin`, `~/.local/bin`, `/usr/local/bin`, `/usr/bin`, `/snap/bin`).
+- **Instancia única en Linux**: `flock` + socket; una segunda ejecución pide mostrar el panel y termina. El lanzador usa `--show-panel`; el auto-inicio arranca oculto.
+- **Panel centrado y arrastrable** en Linux: se centra la primera vez y conserva la posición que elijas (franja superior de arrastre).
+- **Ajustes**: el intervalo de refresco usa un control segmentado; se elimina el `<select>` nativo, que en WebKitGTK abría una ventana GTK y ocultaba el panel.
+- **Menú del tray**: en Linux/macOS la primera fila muestra el consumo y el reinicio (GNOME no dibuja el tooltip nativo del icono).
+- **Conocido en GNOME**: el clic izquierdo sobre el icono abre el menú (no el panel) porque AppIndicator no emite `Activate`; usa **Mostrar panel**.
 
 ## Novedades v1.3.0
 

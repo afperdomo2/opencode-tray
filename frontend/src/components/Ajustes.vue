@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import Icon from './Icon.vue'
 import Switch from './Switch.vue'
 import LanguageSwitch from './LanguageSwitch.vue'
+import SegmentedControl from './SegmentedControl.vue'
 import Skeleton from './Skeleton.vue'
 import { NotifySetEnabled, NotifyEvaluate } from '../../wailsjs/go/main/App'
 import {
@@ -62,9 +63,8 @@ async function onAutoStart(on: boolean) {
   await persistAutoStart(on)
 }
 
-async function onRefresh(event: Event) {
-  const value = Number((event.target as HTMLSelectElement).value)
-  await persistRefreshMin(value)
+async function onRefresh(min: number) {
+  await persistRefreshMin(min)
 }
 
 function onNotify(kind: string, on: boolean) {
@@ -134,14 +134,17 @@ async function clearToken() {
             {{ t('common.autoStart') }}
           </Switch>
 
-          <label class="field">
+          <div class="field">
             <span class="field-label">{{ t('usage.refreshInterval') }}</span>
-            <select class="select" :value="settings.refreshMin" @change="onRefresh">
-              <option v-for="m in intervals" :key="m" :value="m">
-                {{ t('usage.everyMinutes', { n: m }) }}
-              </option>
-            </select>
-          </label>
+            <SegmentedControl
+              :model-value="settings.refreshMin"
+              :options="intervals"
+              :label="t('usage.refreshInterval')"
+              :unit="t('usage.minuteUnit')"
+              :format-label="(n: number) => t('usage.everyMinutes', { n })"
+              @change="onRefresh"
+            />
+          </div>
         </template>
       </div>
 

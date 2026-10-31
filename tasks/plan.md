@@ -50,6 +50,7 @@ shell
 | 18 | `resumen` + `web-access` + `service-control` + `ui-ux` | **frescura de datos**: caché compartido con refresco suave/duro, skeleton solo en primera carga/refresco manual/mutación, invalidación entre pestañas, polling silencioso del servicio y una sola lectura de estado/config por llamada (Snapshot + TTL corto) |
 | 19 | `shell` | **Linux/Ubuntu**: icono PNG por SO, auto-inicio XDG, posición del panel en la esquina inferior derecha, toolchain `webkit2_41` y documentación de limitaciones |
 | 20 | `shell` | **instalación en Ubuntu**: paquete `.deb` con icono en el menú, instancia única (flock + socket `show`), `--show-panel` y resolución automática del CLI de OpenCode |
+| 21 | `shell` + `ui-ux` | **pulido en Ubuntu**: control segmentado (sin `<select>` nativo), consumo en el menú del tray, panel centrado y arrastrable |
 
 Las fases 3a/3b/3c se pueden hacer **en paralelo** (independientes entre sí).
 
@@ -88,6 +89,7 @@ Cada fase termina con su checkpoint antes de pasar a la siguiente:
 - **Fase 17**: Resumen con 4 widgets, barras de consumo intactas, servicio/acceso con estado visual accesible, MCP sin estado textual por item, navegación por clic/teclado; tests y build en verde.
 - **Fase 18**: navegar entre pestañas con datos frescos no hace petición ni muestra skeleton; refresco manual y mutaciones muestran skeleton desde el inicio; Resumen refleja el estado tras stop/start; sin textos de "Actualizando…"; `WebAccessState` hace 1 status + 1 config (y `/api/info` solo en red/remoto); tests y build en verde.
 - **Fase 19**: `go test ./...` y `pnpm test` pasan en Linux; `wails build -tags webkit2_41` produce un binario que arranca en Ubuntu; el icono del tray se dibuja; el toggle de auto-inicio crea/borra `~/.config/autostart/opencode-tray.desktop`; en Windows no cambia nada.
+- **Fase 21**: cambiar el intervalo no oculta el panel; el menú muestra el consumo como primera fila; el panel abre centrado y se puede arrastrar conservando la posición; `go test ./...`, `pnpm test`, `pnpm build` y `./scripts/build-deb.sh` en verde.
 - **Fase 20**: `./scripts/build-deb.sh` genera `dist/opencode-tray_<versión>_amd64.deb`; `dpkg-deb -c` muestra `/usr/bin/opencode-tray`, el `.desktop` y el icono; lanzada desde el menú abre el panel; una segunda ejecución sale en <50 ms sin duplicar el tray; el CLI se resuelve sin estar en el `PATH`; `apt remove` conserva los ajustes; tests y build en verde.
 
 ## 6. Estrategia de testing (desde el inicio)

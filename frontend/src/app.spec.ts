@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   height: vi.fn(),
   hide: vi.fn(),
   blurred: vi.fn(),
+  platform: vi.fn(),
 }))
 
 vi.mock('../wailsjs/go/main/App', async (importOriginal) => {
@@ -21,6 +22,7 @@ vi.mock('../wailsjs/go/main/App', async (importOriginal) => {
     SetFlyoutHeight: mocks.height,
     HideWindow: mocks.hide,
     WindowBlurred: mocks.blurred,
+    Platform: mocks.platform,
   }
 })
 
@@ -43,6 +45,7 @@ describe('App (flyout)', () => {
     mocks.height.mockResolvedValue(undefined)
     mocks.hide.mockResolvedValue(undefined)
     mocks.blurred.mockResolvedValue(undefined)
+    mocks.platform.mockResolvedValue('windows')
   })
 
   afterEach(() => {
@@ -67,6 +70,26 @@ describe('App (flyout)', () => {
     await flushPromises()
     expect(mocks.height).not.toHaveBeenCalled()
     w.unmount()
+  })
+
+  it('muestra la franja de arrastre solo fuera de Windows', async () => {
+    const win = mountApp()
+    await flushPromises()
+    expect(win.find('.drag-strip').exists()).toBe(false)
+    expect(Array.from(win.find('.app').element.children).map((el) => el.tagName.toLowerCase())).toEqual([
+      'main',
+      'nav',
+    ])
+    win.unmount()
+
+    mocks.platform.mockResolvedValue('linux')
+    const linux = mountApp()
+    await flushPromises()
+    expect(linux.find('.drag-strip').exists()).toBe(true)
+    expect(linux.find('.drag-grip').exists()).toBe(true)
+    const children = Array.from(linux.find('.app').element.children).map((el) => el.tagName.toLowerCase())
+    expect(children).toEqual(['div', 'main', 'nav'])
+    linux.unmount()
   })
 
   it('oculta el panel con Escape y al perder el foco', async () => {

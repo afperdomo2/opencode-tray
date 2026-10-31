@@ -167,6 +167,72 @@ h3 {
   color: var(--on-accent);
 }
 
+/* Control segmentado genérico (intervalo de refresco, etc.). */
+.seg {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 2px;
+}
+
+.seg-opt {
+  flex: 1 1 0;
+  min-height: 32px;
+  min-width: 36px;
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  transition:
+    background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.seg-opt:hover {
+  color: var(--text);
+}
+
+.seg-opt.active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.seg-unit {
+  padding: 0 var(--space-sm) 0 var(--space-xs);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Franja de arrastre del panel (solo Linux): Wails mueve la ventana al
+   arrastrarla. En Windows el panel va anclado al icono del tray. */
+.drag-strip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  cursor: grab;
+  --wails-draggable: drag;
+}
+
+.drag-strip:active {
+  cursor: grabbing;
+}
+
+.drag-grip {
+  width: 36px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--border);
+}
+
 /* Footer fijo del flyout: 4 pestañas, icono arriba y texto abajo. */
 .app-nav {
   flex: none;
@@ -523,7 +589,6 @@ h3 {
   color: var(--muted);
 }
 
-.select,
 .input {
   min-height: var(--target);
   width: 100%;

@@ -57,7 +57,8 @@
     "errorForbidden": "OpenCode rechazó la consulta de consumo.",
     "errorTransport": "No se pudo conectar con OpenCode. Revisa tu conexión.",
     "errorParse": "La respuesta de consumo no tiene el formato esperado.",
-    "errorHttp": "OpenCode devolvió una respuesta inesperada."
+    "errorHttp": "OpenCode devolvió una respuesta inesperada.",
+    "minuteUnit": "min"
   },
   "resumen": {
     "accessTitle": "Acceso",

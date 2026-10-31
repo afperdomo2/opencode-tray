@@ -111,6 +111,23 @@ func CornerPosition(work Rect, width, height int) Point {
 	}
 }
 
+// CenterPosition centra el panel en el área de trabajo. Se usa en Linux: el
+// usuario puede mover la ventana, así que solo se centra al abrir la primera vez.
+func CenterPosition(work Rect, width, height int) Point {
+	if width <= 0 {
+		width = FlyoutWidth
+	}
+	if height <= 0 {
+		height = FlyoutMinHeight
+	}
+	x := work.Left + (work.width()-width)/2
+	y := work.Top + (work.height()-height)/2
+	return Point{
+		X: clamp(x, work.Left, work.Right),
+		Y: clamp(y, work.Top, work.Bottom),
+	}
+}
+
 // AnchorPosition calcula la esquina superior izquierda del panel para que quede
 // pegado a la taskbar y alineado con el icono. width/height están en píxeles
 // físicos.

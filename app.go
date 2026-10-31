@@ -133,6 +133,13 @@ func (a *App) initTray(icon []byte) {
 	a.tray.Start()
 }
 
+// Platform devuelve el SO en el que corre la app ("windows", "linux", ...).
+// El frontend lo usa para mostrar la franja de arrastre solo donde la ventana
+// no está anclada al icono del tray.
+func (a *App) Platform() string {
+	return runtime.GOOS
+}
+
 // showPanel muestra el panel. Lo usan el menú del tray, el lanzador del menú
 // de aplicaciones (--show-panel) y una segunda ejecución del binario.
 func (a *App) showPanel() {

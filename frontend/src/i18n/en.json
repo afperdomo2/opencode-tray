@@ -57,7 +57,8 @@
     "errorForbidden": "OpenCode rejected the usage request.",
     "errorTransport": "Could not reach OpenCode. Check your connection.",
     "errorParse": "The usage response has an unexpected format.",
-    "errorHttp": "OpenCode returned an unexpected response."
+    "errorHttp": "OpenCode returned an unexpected response.",
+    "minuteUnit": "min"
   },
   "resumen": {
     "accessTitle": "Access",

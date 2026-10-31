@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { HideWindow, WindowBlurred } from '../wailsjs/go/main/App'
+import { HideWindow, Platform, WindowBlurred } from '../wailsjs/go/main/App'
 import Icon from './components/Icon.vue'
 import Resumen from './components/Resumen.vue'
 import Servicio from './components/Servicio.vue'
@@ -12,6 +12,10 @@ import { loadSettings, settings } from './lib/settings'
 const { t, locale } = useI18n()
 
 const active = ref('resumen')
+
+// En Linux/macOS el panel no está anclado al tray: se muestra una franja
+// superior para arrastrarlo (Wails mueve la ventana con --wails-draggable).
+const canDrag = ref(false)
 
 // Secciones (Servicio ya incluye la configuración; Resumen es el dashboard).
 const sections = [
@@ -36,6 +40,13 @@ onMounted(async () => {
   window.addEventListener('keydown', onKeydown)
   window.addEventListener('blur', onBlur)
 
+  try {
+    canDrag.value = (await Platform()) !== 'windows'
+  } catch {
+    // Sin puente (tests o modo dev): se asume Windows y no se muestra la franja.
+    canDrag.value = false
+  }
+
   await loadSettings()
   locale.value = settings.language
 })
@@ -48,6 +59,10 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="app">
+    <div v-if="canDrag" class="drag-strip" aria-hidden="true">
+      <span class="drag-grip" />
+    </div>
+
     <main class="app-content">
       <div class="app-content-inner">
         <Resumen v-if="active === 'resumen'" @navigate="active = $event" />

@@ -529,3 +529,47 @@ Que en Ubuntu se pueda instalar con `apt`, lanzar desde el menú de aplicaciones
 - [ ] La app encuentra `opencode` desde el menú y el auto-inicio sin symlinks ni cambios en el `PATH`.
 - [ ] Una segunda ejecución no duplica el icono del tray.
 - [ ] `sudo apt remove opencode-tray` deja `~/.config/OpenCodeTray` intacto.
+
+---
+
+# Iteración 12 — pulido de la experiencia en Ubuntu
+
+> Traza a `shell`. Corrige el cierre del panel al usar un `<select>`, añade el consumo al menú del tray y hace el panel centrado y arrastrable.
+
+## Objective
+
+Que la app se sienta usable a diario en Ubuntu/GNOME, donde el escritorio impone límites al tray: sin tooltip nativo, sin clic izquierdo y sin anclaje al icono.
+
+## Problemas y solución
+
+1. **El panel se ocultaba al cambiar el intervalo de refresco.** El `<select>` nativo abría una ventana GTK que robaba el foco; el `blur` del frontend llamaba a `WindowBlurred` y el panel se ocultaba (parecía que la app se cerraba).
+   - **Solución:** `SegmentedControl.vue` (control segmentado `1 · 5 · 15 · 30 · 60 min`) sin ventanas nativas. Test que verifica que Ajustes ya no contiene ningún `<select>`.
+2. **El clic izquierdo del icono abre el menú en GNOME.** La extensión AppIndicator nunca emite `Activate`, así que `energye/systray` no puede distinguir el clic.
+   - **Solución:** no es arreglable en GNOME; se documenta y `Mostrar panel` queda como primera entrada del menú. En KDE/XFCE el clic funciona.
+3. **No hay tooltip al pasar el cursor.** La propiedad `ToolTip` del StatusNotifierItem se publica correctamente (verificado por D-Bus), pero GNOME no la dibuja.
+   - **Solución:** fuera de Windows la primera fila del menú (deshabilitada) replica el texto del tooltip y se actualiza con `SetTooltip`. En Windows y KDE se mantiene el tooltip nativo.
+4. **La ventana no se podía mover.** Frameless sin región de arrastre.
+   - **Solución:** `CenterPosition` centra el panel la primera vez y `--wails-draggable: drag` en una franja superior de 22 px (solo no-Windows). Después de la primera apertura no se vuelve a posicionar, para conservar la posición elegida.
+
+## Cambios técnicos
+
+- `frontend/src/components/SegmentedControl.vue` (nuevo) + estilos `.seg` / `.seg-opt` / `.seg-unit`; `Ajustes.vue` lo usa y `onRefresh` pasa a recibir el número.
+- `internal/shell/tray.go`: ítem de estado deshabilitado fuera de Windows; `SetTooltip` actualiza tooltip nativo **y** la fila del menú (protegido con mutex).
+- `internal/shell/flyout.go`: `CenterPosition` (pura y testeada).
+- `placement_other.go`: centra una sola vez por proceso (`atomic.Bool`).
+- `App.Platform()` expuesto al frontend; `App.vue` muestra `.drag-strip` si no es Windows.
+- Versión 1.3.1 (`.deb` con la corrección).
+
+## Testing Strategy
+
+- **Vitest**: `segmented-control.spec.ts` (render, emisión, opción activa, etiquetas accesibles); `ajustes.spec.ts` (sin `<select>`, `SetRefreshMin(5)` al pulsar `5`); `app.spec.ts` (franja de arrastre solo con `Platform() !== 'windows'`).
+- **Go**: `TestCenterPosition` (centrado, tamaños inválidos, panel mayor que la pantalla).
+- **Manual**: cambiar el intervalo sin que el panel desaparezca; arrastrar el panel y reabrir (mantiene la posición); `GetLayout` del menú muestra la fila de consumo deshabilitada y actualizada.
+- **Build**: `go test ./...`, `pnpm test`, `pnpm build`, `./scripts/build-deb.sh`.
+
+## Success Criteria
+
+- [ ] Cambiar el intervalo de refresco no oculta el panel.
+- [ ] El menú muestra el consumo como primera fila (solo lectura) y se actualiza.
+- [ ] El panel aparece centrado y se puede arrastrar; reabrirlo conserva la posición.
+- [ ] En Windows no cambia nada (sin franja, sin fila de consumo, tooltip nativo, panel anclado).

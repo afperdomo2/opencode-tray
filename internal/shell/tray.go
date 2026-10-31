@@ -1,6 +1,11 @@
 package shell
 
-import "github.com/energye/systray"
+import (
+	"runtime"
+	"sync"
+
+	"github.com/energye/systray"
+)
 
 // TrayOptions define el icono y los callbacks del tray.
 type TrayOptions struct {
@@ -19,6 +24,11 @@ type TrayHandler struct {
 	start      func()
 	end        func()
 	setTooltip func(string)
+
+	// status replica el tooltip como primera fila del menú en los escritorios
+	// que no muestran el tooltip nativo (GNOME/AppIndicator).
+	mu     sync.Mutex
+	status *systray.MenuItem
 }
 
 // NewTrayHandler registra el tray con un bucle externo (integrable con Wails).
@@ -45,6 +55,17 @@ func (h *TrayHandler) onReady() {
 			h.opts.OnClick()
 		}
 	})
+
+	// GNOME/AppIndicator no dibuja el tooltip del icono: el consumo se replica
+	// como primera fila del menú, deshabilitada y actualizada por SetTooltip.
+	if runtime.GOOS != "windows" {
+		status := systray.AddMenuItem("OpenCode Tray", "Consumo de OpenCode Go")
+		status.Disable()
+		h.mu.Lock()
+		h.status = status
+		h.mu.Unlock()
+		systray.AddSeparator()
+	}
 
 	mShow := systray.AddMenuItem("Mostrar panel", "Abre el panel de OpenCode Tray")
 	mShow.Click(func() {
@@ -78,9 +99,19 @@ func (h *TrayHandler) End() {
 	}
 }
 
-// SetTooltip actualiza el texto que aparece al pasar el cursor por el icono.
+// SetTooltip actualiza el texto del tooltip nativo y, fuera de Windows, la
+// primera fila del menú (los escritorios GNOME no muestran el tooltip).
 func (h *TrayHandler) SetTooltip(text string) {
-	if h.setTooltip != nil && text != "" {
+	if text == "" {
+		return
+	}
+	if h.setTooltip != nil {
 		h.setTooltip(text)
+	}
+	h.mu.Lock()
+	status := h.status
+	h.mu.Unlock()
+	if status != nil {
+		status.SetTitle(text)
 	}
 }

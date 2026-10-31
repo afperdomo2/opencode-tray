@@ -692,3 +692,33 @@
   - Verify: `go test ./...`, `pnpm test`, `pnpm build`, `./scripts/build-deb.sh`.
   - Files: `README.md`, `AGENTS.md`, `specs/SPEC-shell.md`, `tasks/plan.md`, `tasks/todo.md`.
 
+---
+
+## Fase 21 — pulido de la experiencia en Ubuntu
+
+> Spec: `SPEC-shell.md` (Iteración 12).
+
+- [x] **Task: Sustituir el `<select>` del intervalo**
+  - **Hecho:** `SegmentedControl.vue` (`1 · 5 · 15 · 30 · 60 min`) reemplaza el `<select>` nativo en Ajustes; `onRefresh` recibe el número. Sin ventana GTK no hay `blur` y el panel ya no se oculta.
+  - Acceptance: cambiar el intervalo no cierra ni oculta el panel.
+  - Verify: `segmented-control.spec.ts`, `ajustes.spec.ts` (sin `<select>`) y prueba manual.
+  - Files: `frontend/src/components/SegmentedControl.vue`, `segmented-control.spec.ts`, `Ajustes.vue`, `ajustes.spec.ts`, `style.css`, i18n es/en.
+
+- [x] **Task: Consumo en el menú del tray (no-Windows)**
+  - **Hecho:** primera fila deshabilitada con el texto del tooltip; `SetTooltip` actualiza tooltip nativo y fila del menú (con mutex).
+  - Acceptance: en GNOME se ve el consumo y el reinicio al abrir el menú, y se actualiza solo.
+  - Verify: `busctl GetLayout` del `StatusNotifierMenu` + revisión visual.
+  - Files: `internal/shell/tray.go`.
+
+- [x] **Task: Panel centrado y arrastrable (no-Windows)**
+  - **Hecho:** `CenterPosition` + centrado único por proceso (`atomic.Bool`) y franja superior de arrastre con `--wails-draggable: drag`; `App.Platform()` decide si se muestra.
+  - Acceptance: el panel abre centrado, se puede mover y conserva la posición al reabrir; en Windows no aparece la franja y sigue anclado.
+  - Verify: `TestCenterPosition`, `app.spec.ts` y prueba manual.
+  - Files: `internal/shell/flyout.go`, `flyout_test.go`, `placement_other.go`, `app.go`, `App.vue`, `app.spec.ts`, `style.css`.
+
+- [x] **Task: Documentar y publicar 1.3.1**
+  - **Hecho:** README, `AGENTS.md`, `SPEC-shell.md` (Iteración 12), plan/todo y `RELEASE.md`; `wails.json` a 1.3.1 y `.deb` regenerado.
+  - Acceptance: documentación coherente y paquete actualizado.
+  - Verify: `go test ./...`, `pnpm test`, `pnpm build`, `./scripts/build-deb.sh`.
+  - Files: `README.md`, `AGENTS.md`, `RELEASE.md`, `specs/SPEC-shell.md`, `tasks/plan.md`, `tasks/todo.md`, `wails.json`.
+

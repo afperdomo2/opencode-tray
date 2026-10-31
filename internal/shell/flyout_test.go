@@ -110,3 +110,25 @@ func TestCornerPosition(t *testing.T) {
 		})
 	}
 }
+
+func TestCenterPosition(t *testing.T) {
+	work := Rect{Left: 0, Top: 0, Right: 1920, Bottom: 1080}
+
+	tests := []struct {
+		name          string
+		width, height int
+		want          Point
+	}{
+		{name: "centrado", width: 380, height: 600, want: Point{X: 770, Y: 240}},
+		{name: "tamaños inválidos usan mínimos", width: 0, height: 0, want: Point{X: 770, Y: 380}},
+		{name: "panel mayor que el área", width: 3000, height: 2000, want: Point{X: 0, Y: 0}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := CenterPosition(work, tt.width, tt.height); got != tt.want {
+				t.Errorf("CenterPosition(%+v, %d, %d) = %+v, want %+v", work, tt.width, tt.height, got, tt.want)
+			}
+		})
+	}
+}

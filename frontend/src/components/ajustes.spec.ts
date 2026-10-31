@@ -75,10 +75,15 @@ describe('Ajustes', () => {
     expect(w.findAll('.settings-grid > .card').length).toBe(4)
   })
 
-  it('cambia el intervalo de refresco', async () => {
+  it('cambia el intervalo con el control segmentado (sin <select> nativo)', async () => {
     const w = await mountAjustes()
-    await w.find('select').setValue('5')
+    expect(w.find('select').exists()).toBe(false)
+
+    const five = w.findAll('.seg-opt').find((o) => o.text() === '5')
+    expect(five).toBeTruthy()
+    await five!.trigger('click')
     await flushPromises()
+
     const { SetRefreshMin } = await import('../../wailsjs/go/main/App')
     expect(SetRefreshMin).toHaveBeenCalledWith(5)
   })

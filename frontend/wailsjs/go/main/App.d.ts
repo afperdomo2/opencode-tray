@@ -22,6 +22,8 @@ export function NotifyEvaluate():Promise<void>;
 
 export function NotifySetEnabled(arg1:string,arg2:boolean):Promise<void>;
 
+export function Platform():Promise<string>;
+
 export function SaveSettings(arg1:shell.Settings):Promise<void>;
 
 export function ServiceForceStop():Promise<void>;

@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"opencode-tray/internal/cli"
 )
 
 // Window describe una ventana de consumo (percent 0-100 + reset).
@@ -69,7 +71,7 @@ func New() *Service {
 		client:    &http.Client{Timeout: 10 * time.Second},
 		baseURL:   "https://opencode.ai",
 		authFiles: files,
-		runner:    execRunner{bin: "opencode"},
+		runner:    execRunner{bin: cli.Resolve()},
 	}
 }
 

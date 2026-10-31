@@ -51,6 +51,7 @@ export PATH="$HOME/go/bin:$PATH"        # queda en ~/go/bin
 |---|---|
 | Compilar y probar en **Ubuntu** (primera vez) | Pasos 1–4 de abajo |
 | Recompilar tras un cambio | `./scripts/build-linux.sh` |
+| **Instalar** como app en Ubuntu (`.deb`) | `./scripts/build-deb.sh` y luego `sudo apt install ./dist/*.deb` |
 | Compilar el **`.exe`** en Windows | `wails build -clean -webview2 download` |
 | Correr solo los tests | `go test ./...` y `cd frontend && pnpm test` |
 | Desarrollo con hot reload | `wails dev` (lee las [limitaciones](#limitaciones)) |
@@ -95,7 +96,7 @@ Con instalador per-user: `powershell -ExecutionPolicy Bypass -File scripts\build
 ### Cómo abrir el panel
 
 - **Windows:** clic izquierdo en el icono de la bandeja (clic derecho = menú).
-- **Ubuntu/GNOME:** abre el menú del icono y elige **Mostrar panel**. GNOME no siempre emite el clic izquierdo (`Activate`), por eso el panel también está en el menú.
+- **Ubuntu/GNOME:** abre el menú del icono y elige **Mostrar panel**. GNOME no siempre emite el clic izquierdo (`Activate`), por eso el panel también está en el menú. Si instalaste el `.deb`, también puedes lanzarla desde el **menú de aplicaciones** (abre el panel al arrancar).
 - Se cierra con `Esc`, al perder el foco o con un segundo clic. **Cerrar = ocultar al tray**; para salir de verdad usa **Salir** en el menú.
 
 ### Checklist de humo (2 minutos)
@@ -176,7 +177,8 @@ cd frontend && pnpm build   # type-check (vue-tsc) + build del frontend
 | `internal/notifications` | Lógica de alertas (envío deshabilitado) |
 | `frontend/` | UI Vue 3 (`components/` por sección, `lib/` caché y ajustes, i18n es/en) |
 | `build/` | Iconos y recursos por plataforma (`build/bin` es gitignored) |
-| `scripts/` | `build-linux.sh`, `build-installer.ps1` (Windows) |
+| `scripts/` | `build-linux.sh`, `build-deb.sh`, `build-installer.ps1` (Windows) |
+| `internal/cli` | Resolución del CLI de OpenCode (PATH, `~/.opencode/bin`, etc.) |
 
 ---
 
@@ -291,7 +293,7 @@ Sin certificado, Windows SmartScreen puede mostrar una advertencia. Si tienes ce
 <a id="build-linux"></a>
 ## 🐧 Build — Linux/Ubuntu
 
-> Soporte para **desarrollo y prueba**. La distribución oficial sigue siendo el `.exe` de Windows: no hay instalador ni paquete `.deb`.
+> Se puede **compilar y ejecutar sin instalar** o generar un **`.deb`** para usarla como cualquier app del escritorio. La distribución oficial sigue siendo el `.exe` de Windows.
 
 ### Requisitos (una sola vez)
 
@@ -313,6 +315,33 @@ export PATH="$HOME/go/bin:$PATH"
 
 El binario queda en `build/bin/opencode-tray` (gitignored). Para recompilar tras un cambio basta con repetir el script (build incremental ~10 s).
 
+### Instalar como aplicación (`.deb`)
+
+```bash
+./scripts/build-deb.sh                                   # → dist/opencode-tray_<versión>_amd64.deb
+sudo apt install ./dist/opencode-tray_1.3.0_amd64.deb
+```
+
+El paquete instala tres cosas:
+
+| Ruta | Para qué |
+|---|---|
+| `/usr/bin/opencode-tray` | Ejecutable |
+| `/usr/share/applications/opencode-tray.desktop` | **Icono en el menú de aplicaciones** (buscable como “OpenCode Tray”) |
+| `/usr/share/icons/hicolor/256x256/apps/opencode-tray.png` | Icono del menú y del dock |
+
+- Se lanza **desde el menú de aplicaciones** o con `opencode-tray` en la terminal; no hace falta abrir una terminal para usarla.
+- El lanzador del menú abre el **panel directamente** (`--show-panel`); si la app ya está corriendo, la segunda ejecución pide al proceso vivo que muestre el panel y termina (instancia única).
+- El **auto-inicio** (Ajustes → “Iniciar con el sistema”) arranca oculta, solo con el icono del tray.
+- **No necesita symlink ni tocar el `PATH`**: la app resuelve el CLI de OpenCode sola (`$OPENCODE_BIN`, `PATH`, `~/.opencode/bin`, `~/.local/bin`, `/usr/local/bin`, `/usr/bin`, `/snap/bin`).
+- La versión del paquete sale de `Info.productVersion` en `wails.json`.
+
+Desinstalar (los ajustes de `~/.config/OpenCodeTray` se conservan):
+
+```bash
+sudo apt remove opencode-tray
+```
+
 ### Diferencias respecto a Windows
 
 - **Icono de bandeja**: se embebe `build/linux/icon.png` (64 px) porque la bandeja decodifica PNG/JPEG y no ICO. Windows sigue usando `build/windows/icon.ico`.
@@ -321,7 +350,7 @@ El binario queda en `build/bin/opencode-tray` (gitignored). Para recompilar tras
 - **Clic en el icono**: en GNOME/AppIndicator usa **Mostrar panel** en el menú del tray.
 - **Auto-inicio**: crea `~/.config/autostart/opencode-tray.desktop` (XDG).
 - **Secretos**: sin DPAPI, el token manual de OpenCode Go se guarda en **base64** (no cifrado). No lo uses en máquinas compartidas.
-- **Instancia única**: no implementada en Linux (puedes abrir varias instancias).
+- **Instancia única**: implementada con `flock` + socket en `$XDG_RUNTIME_DIR`; una segunda ejecución pide mostrar el panel y sale.
 - **Notificaciones**: dependen del daemon de notificaciones del escritorio (el envío está deshabilitado en runtime, igual que en Windows).
 
 ---
@@ -332,7 +361,7 @@ El binario queda en `build/bin/opencode-tray` (gitignored). Para recompilar tras
 - **Flyout**: el hover solo muestra el tooltip nativo con consumo; no hay preview visual. El panel tampoco se puede redimensionar ni arrastrar por diseño.
 - **Notificaciones**: el **envío** de toasts está deshabilitado en runtime — el mecanismo de Wails entraba en conflicto con el bucle de la bandeja y la dejaba muda. La lógica (ritmo, umbrales, servicio detenido) está implementada y probada; detalle y cómo reactivarlo en [`specs/SPEC-notifications.md`](specs/SPEC-notifications.md).
 - **Fuentes web**: la UI carga IBM Plex Sans + JetBrains Mono desde Google Fonts (`display=swap`); sin red degrada a las fuentes del sistema y la app sigue siendo funcional.
-- **Linux**: sin anclaje real al icono (esquina inferior derecha; Wayland puede ignorarla), sin instancia única, sin cifrado DPAPI para el token manual y sin instalador. Detalle en [`specs/SPEC-shell.md`](specs/SPEC-shell.md) → Iteración 10.
+- **Linux**: sin anclaje real al icono (esquina inferior derecha; Wayland puede ignorarla) y sin cifrado DPAPI para el token manual. Detalle en [`specs/SPEC-shell.md`](specs/SPEC-shell.md) → Iteraciones 10 y 11.
 - **`wails dev`**: el puente frontend ↔ backend puede fallar en modo dev (ver [Desarrollo](#desarrollo)). Para validar comportamiento real usa siempre el build de producción:
 
   ```bash

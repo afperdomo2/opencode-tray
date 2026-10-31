@@ -3,8 +3,10 @@
 # Wails
 build/bin
 build/darwin
+build/deb
 node_modules
 frontend/dist
 
 # Binarios compilados (go build ./... deja exes en la raíz)
 *.exe
+dist/

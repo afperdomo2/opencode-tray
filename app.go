@@ -57,6 +57,10 @@ type App struct {
 
 	// Reloj inyectable para tests del tooltip y la caché.
 	now func() time.Time
+
+	// showOnStart abre el panel en cuanto arranca (lo usa el lanzador del menú
+	// de aplicaciones con --show-panel). El auto-inicio no lo activa.
+	showOnStart bool
 }
 
 // statusFlight es una lectura de estado en curso que otros llamadores esperan.
@@ -117,11 +121,7 @@ func (a *App) initTray(icon []byte) {
 				a.win.ToggleAt(shell.CursorPosition())
 			}
 		},
-		OnShow: func() {
-			if a.win != nil {
-				a.win.ShowAt(shell.CursorPosition())
-			}
-		},
+		OnShow: func() { a.showPanel() },
 		OnQuit: func() {
 			if a.ctx != nil {
 				wailsruntime.Quit(a.ctx)
@@ -131,6 +131,14 @@ func (a *App) initTray(icon []byte) {
 		},
 	})
 	a.tray.Start()
+}
+
+// showPanel muestra el panel. Lo usan el menú del tray, el lanzador del menú
+// de aplicaciones (--show-panel) y una segunda ejecución del binario.
+func (a *App) showPanel() {
+	if a.win != nil {
+		a.win.ShowAt(shell.CursorPosition())
+	}
 }
 
 // startup se ejecuta al arrancar: configura la ventana y el watcher.
@@ -148,6 +156,12 @@ func (a *App) startup(ctx context.Context) {
 	// aquí para que la app nazca solo con el icono de bandeja, como en Windows.
 	if runtime.GOOS != "windows" {
 		wailsruntime.WindowHide(ctx)
+	}
+
+	// El lanzador del menú de aplicaciones pide el panel explícitamente para
+	// que el clic tenga feedback inmediato; el auto-inicio arranca oculto.
+	if a.showOnStart {
+		a.showPanel()
 	}
 
 	// Envío de notificaciones DESHABILITADO (Fase 4): inyectar aquí

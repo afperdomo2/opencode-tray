@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=OpenCode Tray
+GenericName=Tray para OpenCode
+Comment=Controla el servicio de OpenCode, el acceso web y el consumo de OpenCode Go
+Exec=opencode-tray --show-panel
+Icon=opencode-tray
+Terminal=false
+Categories=Utility;
+Keywords=opencode;tray;bandeja;servicio;consumo;mcp;
+StartupNotify=false
+StartupWMClass=opencode-tray

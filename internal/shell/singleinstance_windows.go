@@ -13,7 +13,6 @@ import (
 func AcquireSingleInstanceLock(name string) (bool, func()) {
 	n, err := windows.UTF16PtrFromString(name)
 	if err != nil {
-		// Nombre inválido: no bloqueamos el arranque.
 		return true, func() {}
 	}
 	h, err := windows.CreateMutex(nil, false, n)
@@ -28,3 +27,10 @@ func AcquireSingleInstanceLock(name string) (bool, func()) {
 	}
 	return true, func() { windows.CloseHandle(h) }
 }
+
+// RequestShow no aplica en Windows: el instalador abre el panel con
+// `--show-panel` y la segunda instancia simplemente sale.
+func RequestShow(name string) bool { return false }
+
+// ServeShowRequests no aplica en Windows.
+func ServeShowRequests(name string, onShow func()) {}

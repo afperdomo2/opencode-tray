@@ -3,6 +3,8 @@ package servicecontrol
 import (
 	"strings"
 	"time"
+
+	"opencode-tray/internal/cli"
 )
 
 // runner ejecuta el CLI de OpenCode. Es una interfaz para poder mockear el
@@ -17,10 +19,11 @@ type Service struct {
 	kill   func(pid int) error
 }
 
-// New crea un Service que invoca el binario `opencode` del PATH.
+// New crea un Service que invoca el CLI de OpenCode (se resuelve con
+// cli.Resolve para funcionar también desde el menú o el auto-inicio).
 func New() *Service {
 	return &Service{
-		runner: execRunner{bin: "opencode", timeout: 15 * time.Second},
+		runner: execRunner{bin: cli.Resolve(), timeout: 15 * time.Second},
 		kill:   killByPID,
 	}
 }

@@ -661,3 +661,34 @@
   - Acceptance: documentación coherente y build verde en Linux.
   - Verify: `go test ./...`, `pnpm test`, `pnpm build`, `wails build -tags webkit2_41`.
   - Files: `README.md`, `AGENTS.md`, `specs/SPEC-shell.md`, `specs/CAPABILITY-MAP.md`, `tasks/plan.md`, `tasks/todo.md`.
+
+---
+
+## Fase 20 — instalación en Ubuntu (`.deb`), instancia única y CLI
+
+> Spec: `SPEC-shell.md` (Iteración 11). Sin dependencias Go nuevas.
+
+- [x] **Task: Resolución automática del CLI de OpenCode**
+  - **Hecho:** `internal/cli.Resolve()` busca `$OPENCODE_BIN` → `PATH` → `~/.opencode/bin` → `~/.local/bin` → `/usr/local/bin` → `/usr/bin` → `/snap/bin`; `servicecontrol`, `usage` y `configviewer` lo usan en sus constructores.
+  - Acceptance: lanzada desde el menú (PATH gráfico sin `~/.opencode/bin`), la app ejecuta el CLI real.
+  - Verify: `internal/cli/cli_test.go` + `strace -f -e execve` mostrando `/home/<user>/.opencode/bin/opencode`.
+  - Files: `internal/cli/cli.go`, `internal/cli/cli_test.go`, `internal/servicecontrol/service.go`, `internal/usage/usage.go`, `internal/configviewer/configviewer.go`.
+
+- [x] **Task: Instancia única en Linux + `--show-panel`**
+  - **Hecho:** `flock` en `$XDG_RUNTIME_DIR/opencode-tray-instance.lock` (se libera solo al morir el proceso) y socket Unix para pedir `show`; `main.go` interpreta `--show-panel`, pide mostrar a la instancia viva y sale, y `App.startup` abre el panel si se pidió.
+  - Acceptance: segunda ejecución <50 ms sin duplicar el tray; `--show-panel` abre el panel en frío; auto-inicio arranca oculto.
+  - Verify: `singleinstance_other_test.go` y prueba E2E (`xwininfo`: `IsViewable`, una sola instancia).
+  - Files: `internal/shell/singleinstance_{other,windows,bindings}.go`, `internal/shell/singleinstance_other_test.go`, `main.go`, `app.go`.
+
+- [x] **Task: Paquete `.deb` con icono en el menú**
+  - **Hecho:** `scripts/build-deb.sh` (versión desde `wails.json`) genera `dist/opencode-tray_<v>_<arch>.deb` con `/usr/bin/opencode-tray`, `opencode-tray.desktop` (`Exec=opencode-tray --show-panel`) y el icono 256 px; `desktop-file-validate` y `dpkg-deb --info` en el propio script.
+  - Acceptance: `sudo apt install ./dist/*.deb` instala; el icono aparece en el menú y abre el panel.
+  - Verify: `dpkg-deb -c`, instalación real y `apt remove`.
+  - Files: `scripts/build-deb.sh`, `build/linux/opencode-tray.desktop`, `build/linux/icon-256.png`, `.gitignore` (`dist/`, `build/deb`).
+
+- [x] **Task: Documentar y validar**
+  - **Hecho:** README (Instalar como aplicación, instancia única y CLI), `AGENTS.md`, `SPEC-shell.md` (Iteración 11), `tasks/plan.md` y `tasks/todo.md`.
+  - Acceptance: documentación coherente y build en verde.
+  - Verify: `go test ./...`, `pnpm test`, `pnpm build`, `./scripts/build-deb.sh`.
+  - Files: `README.md`, `AGENTS.md`, `specs/SPEC-shell.md`, `tasks/plan.md`, `tasks/todo.md`.
+

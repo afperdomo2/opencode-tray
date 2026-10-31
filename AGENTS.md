@@ -10,6 +10,7 @@ Stack: **Wails v2.16 + Go 1.25+ + Vue 3 / Vite / TypeScript**.
 wails dev                 # desarrollo (hot reload)
 wails build               # Windows: .exe portable
 ./scripts/build-linux.sh  # Linux: ELF (wails build -tags webkit2_41)
+./scripts/build-deb.sh    # Linux: paquete .deb en dist/ (instala icono en el menú)
 go test ./...             # tests backend
 cd frontend && pnpm test   # tests frontend (Vitest)
 powershell -ExecutionPolicy Bypass -File scripts/build-installer.ps1  # portable + instalador Inno Setup
@@ -25,7 +26,10 @@ powershell -ExecutionPolicy Bypass -File scripts/build-installer.ps1  # portable
 - `build/windows/installer/opencode-tray.iss` — definición del instalador Inno Setup (se trackea).
 - `scripts/build-installer.ps1` — build portable + instalador (se trackea).
 - `scripts/build-linux.sh` — build para Linux (`-tags webkit2_41`); se trackea.
+- `scripts/build-deb.sh` — empaqueta `.deb` en `dist/` (`/usr/bin`, `.desktop` e icono); se trackea.
 - `build/linux/icon.png` — icono de bandeja en Linux (64 px, PNG; `image.Decode` no lee ICO).
+- `build/linux/icon-256.png` y `build/linux/opencode-tray.desktop` — icono y lanzador del menú para el `.deb`.
+- `dist/` — paquetes generados; gitignored.
 
 ## Flujo de trabajo (SDD)
 
@@ -37,7 +41,9 @@ Las specs son la fuente de verdad. Ante un cambio de requisitos, alcance o arqui
 - **El tray se registra en `main`, antes de `wails.Run`**: Wails v2.16 ejecuta `OnStartup` en otra goroutine. Si `energye/systray` se registra allí, la ventana `SystrayClass` queda en un hilo sin bucle de mensajes: el icono aparece pero el clic izquierdo y el menú contextual no responden. `app.initTray(trayIcon)` debe seguir en `main`.
 - **Instalador**: `build/windows/installer/opencode-tray.iss` y `scripts/build-installer.ps1` se trackean; `build/bin/` no. Para compilar el instalador se requiere **Inno Setup 6.3+** (`ISCC.exe`). Ver README → "Build — Windows".
 - **`StartHidden` no funciona en Linux (Wails v2.16)**: `internal/frontend/desktop/linux/window.go` llama a `Hide` y acto seguido a `gtk_widget_show_all`, así que la ventana aparece al arrancar. `App.startup` la oculta explícitamente en no-Windows; no quitar esa guarda.
-- **Linux/Ubuntu**: requiere `build-essential`, `pkg-config`, `libgtk-3-dev` y `libwebkit2gtk-4.1-dev`, más `CGO_ENABLED=1`. Ubuntu 24.04+ solo trae WebKitGTK 4.1 → compilar con `-tags webkit2_41` (lo hace `scripts/build-linux.sh`). El panel no se ancla al tray (esquina inferior derecha, y Wayland puede ignorarlo), no hay instancia única y el token manual se guarda en base64 (sin DPAPI). Detalle en `specs/SPEC-shell.md` → Iteración 10.
+- **Linux/Ubuntu**: requiere `build-essential`, `pkg-config`, `libgtk-3-dev` y `libwebkit2gtk-4.1-dev`, más `CGO_ENABLED=1`. Ubuntu 24.04+ solo trae WebKitGTK 4.1 → compilar con `-tags webkit2_41` (lo hace `scripts/build-linux.sh`). El panel no se ancla al tray (esquina inferior derecha, y Wayland puede ignorarlo) y el token manual se guarda en base64 (sin DPAPI). Detalle en `specs/SPEC-shell.md` → Iteraciones 10 y 11.
+- **CLI de OpenCode**: se resuelve con `internal/cli.Resolve()` (`$OPENCODE_BIN` → `PATH` → `~/.opencode/bin` → `~/.local/bin` → `/usr/local/bin` → `/usr/bin` → `/snap/bin`). **No hardcodees `"opencode"`** en los constructores: desde el menú o el auto-inicio el `PATH` gráfico no incluye el shell del usuario.
+- **Instancia única (Linux)**: `flock` en `$XDG_RUNTIME_DIR/opencode-tray-instance.lock` y socket `.sock` para que una segunda ejecución pida mostrar el panel. El lanzador del `.deb` usa `--show-panel`; el auto-inicio arranca oculto.
 
 ## Reglas
 

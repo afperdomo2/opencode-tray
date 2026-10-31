@@ -9,3 +9,9 @@ package shell
 func AcquireSingleInstanceLock(name string) (bool, func()) {
 	return true, func() {}
 }
+
+// RequestShow no hace nada durante la generación de bindings.
+func RequestShow(name string) bool { return false }
+
+// ServeShowRequests no hace nada durante la generación de bindings.
+func ServeShowRequests(name string, onShow func()) {}

@@ -478,3 +478,54 @@ Que OpenCode Tray se pueda compilar y ejecutar en Linux (Ubuntu 24.04+ con GNOME
 - [ ] El icono del tray se dibuja (PNG decodificado) y el menú abre el panel.
 - [ ] El toggle de auto-inicio crea y elimina `~/.config/autostart/opencode-tray.desktop`.
 - [ ] En Windows se sigue usando el registro y el `.ico` sin cambios de comportamiento.
+
+---
+
+# Iteración 11 — instalación en Ubuntu (`.deb`), instancia única y resolución del CLI
+
+> Traza a `shell`. Permite usar la app como cualquier aplicación del escritorio: icono en el menú, paquete `.deb`, una sola instancia y sin pasos manuales de entorno.
+
+## Objective
+
+Que en Ubuntu se pueda instalar con `apt`, lanzar desde el menú de aplicaciones y usar a diario, sin terminal y sin configurar el `PATH` a mano.
+
+## Cambios
+
+1. **Paquete `.deb`** (`scripts/build-deb.sh`):
+   - `/usr/bin/opencode-tray`
+   - `/usr/share/applications/opencode-tray.desktop` (`Exec=opencode-tray --show-panel`, `Icon=opencode-tray`, `StartupWMClass=opencode-tray`)
+   - `/usr/share/icons/hicolor/256x256/apps/opencode-tray.png`
+   - `Depends: libgtk-3-0t64 | libgtk-3-0, libwebkit2gtk-4.1-0`; `Recommends: gnome-shell-extension-appindicator`.
+   - Versión desde `Info.productVersion` de `wails.json`; salida en `dist/` (gitignored).
+2. **Resolución del CLI** (`internal/cli`): `Resolve()` busca `$OPENCODE_BIN`, luego `PATH`, y después `~/.opencode/bin`, `~/.local/bin`, `/usr/local/bin`, `/usr/bin` y `/snap/bin`. `servicecontrol`, `usage` y `configviewer` lo usan en sus constructores. Motivo: una app lanzada desde el menú o el auto-inicio no hereda el `PATH` del shell, donde suele vivir `opencode`.
+3. **Instancia única en Linux** (`internal/shell/singleinstance_other.go`): `flock` sobre `$XDG_RUNTIME_DIR/opencode-tray-instance.lock` (se libera solo si el proceso muere) y `RequestShow`/`ServeShowRequests` con un socket Unix en `$XDG_RUNTIME_DIR/opencode-tray-instance.sock`.
+4. **`--show-panel`** (`main.go` + `App.showOnStart`): el lanzador del menú abre el panel al arrancar; el auto-inicio (sin flag) arranca oculto. Si ya hay una instancia, la segunda envía `show` por el socket y termina.
+
+## Comportamiento al lanzar
+
+| Situación | Resultado |
+|---|---|
+| Primer arranque desde el menú | Arranca y abre el panel |
+| Ya corriendo (auto-inicio) + clic en el menú | La segunda instancia pide `show` y sale; el panel se abre |
+| Auto-inicio de sesión | Arranca oculto, solo icono del tray |
+| Segunda instancia en terminal | Sale en silencio (<50 ms) |
+
+## Fuera de alcance
+
+- Auto-actualización del paquete (se reinstala el `.deb`).
+- Firma GPG del paquete y repositorio APT (instalación local).
+- Empaquetado para otras distros (`.rpm`, AppImage).
+
+## Testing Strategy
+
+- **Go**: `internal/cli` (precedencia `OPENCODE_BIN`/`PATH`/rutas conocidas, directorios ignorados, fallback a `opencode`) y `internal/shell` (lock excluyente, liberación y re-adquisición; `ServeShowRequests` + `RequestShow`; sin servidor devuelve `false`).
+- **Manual/E2E**: `.deb` generado y validado con `desktop-file-validate` y `dpkg-deb -c`; binario ejecutado con un `PATH` gráfico simulado (sin `~/.opencode/bin`) verificando con `strace` que se ejecuta `/home/<user>/.opencode/bin/opencode`; segunda ejecución con `--show-panel` termina en <50 ms y abre el panel de la primera (`xwininfo` → `IsViewable`).
+- **Build**: `go test ./...`, `pnpm test`, `pnpm build`, `./scripts/build-deb.sh`.
+
+## Success Criteria
+
+- [ ] `sudo apt install ./dist/opencode-tray_<versión>_amd64.deb` instala sin dependencias rotas.
+- [ ] El icono aparece en el menú de aplicaciones y abre el panel al lanzarlo.
+- [ ] La app encuentra `opencode` desde el menú y el auto-inicio sin symlinks ni cambios en el `PATH`.
+- [ ] Una segunda ejecución no duplica el icono del tray.
+- [ ] `sudo apt remove opencode-tray` deja `~/.config/OpenCodeTray` intacto.

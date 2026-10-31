@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"opencode-tray/internal/cli"
 	"opencode-tray/internal/procs"
 )
 
@@ -31,11 +32,12 @@ type Service struct {
 	open      func(args ...string) error
 }
 
-// New crea un Service apuntando a ~/.config/opencode y al CLI `opencode`.
+// New crea un Service apuntando a ~/.config/opencode y al CLI de OpenCode
+// (resuelto con cli.Resolve para funcionar desde el menú y el auto-inicio).
 func New() *Service {
 	home, _ := os.UserHomeDir()
 	return &Service{
-		runner:    execRunner{bin: "opencode", timeout: 15 * time.Second},
+		runner:    execRunner{bin: cli.Resolve(), timeout: 15 * time.Second},
 		configDir: filepath.Join(home, ".config", "opencode"),
 		lookPath:  exec.LookPath,
 		open:      openExec,

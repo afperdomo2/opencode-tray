@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"os"
 	"runtime"
 
 	"github.com/wailsapp/wails/v2"
@@ -33,21 +34,45 @@ func trayIcon() []byte {
 	return trayIconPNG
 }
 
+// instanceName identifica el lock y el socket de instancia única.
+const instanceName = "opencode-tray-instance"
+
+// showPanelArg indica si esta ejecución debe abrir el panel al arrancar. Lo usa
+// el .desktop del menú de aplicaciones para dar feedback inmediato.
+const showPanelArg = "--show-panel"
+
+// wantsPanel comprueba si se pidió abrir el panel en los argumentos.
+func wantsPanel(args []string) bool {
+	for _, arg := range args {
+		if arg == showPanelArg {
+			return true
+		}
+	}
+	return false
+}
+
 func main() {
-	// Una sola instancia: si ya hay otra corriendo, salir en silencio.
-	ok, release := shell.AcquireSingleInstanceLock("opencode-tray-instance")
+	// Una sola instancia: si ya hay otra corriendo, se le pide que muestre el
+	// panel y esta ejecución sale.
+	ok, release := shell.AcquireSingleInstanceLock(instanceName)
 	if !ok {
+		shell.RequestShow(instanceName)
 		return
 	}
 	defer release()
 
 	app := NewApp()
+	app.showOnStart = wantsPanel(os.Args[1:])
 
 	// El tray se registra en el hilo principal, antes de que Wails arranque su
 	// bucle de mensajes. Si se registrara dentro de OnStartup (que Wails ejecuta
 	// en otra goroutine), la ventana del tray quedaría en un hilo sin bucle de
 	// mensajes y los clics/menú no funcionarían.
 	app.initTray(trayIcon())
+
+	// Atiende a una segunda ejecución (p. ej. clic en el icono del menú cuando
+	// la app ya corre desde el auto-inicio).
+	shell.ServeShowRequests(instanceName, app.showPanel)
 
 	err := wails.Run(&options.App{
 		Title:            "OpenCode Tray",

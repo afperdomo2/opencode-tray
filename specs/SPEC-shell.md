@@ -4,7 +4,7 @@
 
 ## Objective
 
-`shell` es la fundación de **OpenCode Tray**: una app de bandeja (tray) para Windows escrita con Wails que da soporte estructural al resto de módulos. No implementa lógica de OpenCode por sí misma; provee el andamiaje (ventana, tray, ajustes, idioma, arranque) al que se enchufan `service-control`, `web-access`, `usage`, `config-viewer` y `notifications`.
+`shell` es la fundación de **OpenCode Tray**: una app de bandeja (tray) para **Windows y Linux** escrita con Wails que da soporte estructural al resto de módulos. No implementa lógica de OpenCode por sí misma; provee el andamiaje (ventana, tray, ajustes, idioma, arranque) al que se enchufan `service-control`, `web-access`, `usage`, `config-viewer` y `notifications`.
 
 **Usuario**: un desarrollador que usa OpenCode a diario y quiere controlar su servicio, acceso web y consumo desde la bandeja, sin abrir la terminal.
 
@@ -14,7 +14,7 @@
 3. **Una sola instancia**: si se lanza dos veces, se enfoca la existente.
 4. **Cerrar = minimizar al tray** (el proceso no sale; salir solo desde el menú del tray).
 5. **Persistencia de ajustes** en un archivo JSON local (no en la config de OpenCode).
-6. **Toggle "Iniciar con Windows"** (registro `HKCU\...\Run`).
+6. **Toggle "Iniciar con Windows"** (registro `HKCU\...\Run`; en Linux, entrada XDG Autostart).
 7. **i18n español/inglés** con selector de idioma.
 8. Define el **esqueleto de secciones** del panel (Resumen, Servicio, Acceso web, Consumo, Config, Ajustes) como contenedores vacíos que los demás módulos rellenan.
 
@@ -23,7 +23,7 @@
 | Capa | Tecnología | Versión |
 |---|---|---|
 | Shell desktop | Wails | v2 (última estable) |
-| Backend | Go | 1.24+ |
+| Backend | Go | 1.25+ (`go.mod`) |
 | Frontend | Vue 3 + Vite + TypeScript | Vue 3.x |
 | Icono de bandeja | `energye/systray` | última |
 | i18n | `vue-i18n` | 11.x |
@@ -424,3 +424,57 @@ Wails v2.16 ejecuta `OnStartup` en una **goroutine nueva**. Al registrar `energy
 - [ ] Tests y build en verde.
 
 
+---
+
+# Iteración 10 — soporte de compilación y ejecución en Linux
+
+> Traza a `shell`. Habilita compilar y probar la app en Ubuntu sin cambiar el comportamiento en Windows.
+
+## Objective
+
+Que OpenCode Tray se pueda compilar y ejecutar en Linux (Ubuntu 24.04+ con GNOME) para desarrollo y prueba, manteniendo Windows como plataforma de distribución principal.
+
+## Plataformas
+
+| Capacidad | Windows | Linux |
+|---|---|---|
+| Compilación | `wails build` | `wails build -tags webkit2_41` (Ubuntu 26.04 solo trae WebKitGTK 4.1) |
+| Toolchain | MSVC/WebView2 | `gcc` + `pkg-config` + `libgtk-3-dev` + `libwebkit2gtk-4.1-dev` |
+| Icono de bandeja | `build/windows/icon.ico` | `build/linux/icon.png` (64 px; `image.Decode` no lee ICO) |
+| Bandera de bandeja | `StatusNotifierItem` vía DBus (GNOME AppIndicator) | ídem |
+| Auto-inicio | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` | `~/.config/autostart/opencode-tray.desktop` (XDG) |
+| Anclaje del panel | Win32: posición junto al icono, taskbar, DPI y multi-monitor | mejor esfuerzo: esquina inferior derecha del monitor principal |
+| Instancia única | mutex con nombre Win32 | **no soportada** (se documenta como limitación) |
+| Secretos (token de Go) | DPAPI (`CryptProtectData`) | base64 (sin llavero del SO; se documenta como limitación) |
+| Notificaciones | toasts (hoy deshabilitadas) | D-Bus, dependen del daemon del escritorio |
+| Instalador | Inno Setup per-user | no aplica (binario ELF) |
+
+## Cambios
+
+1. **Icono por SO** (`main.go`): se embeben `build/windows/icon.ico` y `build/linux/icon.png`; `trayIcon()` elige según `runtime.GOOS`.
+2. **Auto-inicio XDG** (`internal/shell/autostart_xdg.go`): implementa `runKey` sobre `~/.config/autostart` escribiendo una entrada `.desktop` con `Exec=<ruta del ejecutable>`. El contrato de `AutoStart` (`SetEnabled` / `Enabled`) no cambia.
+3. **Posición del panel** (`placement_windows.go`, `placement_other.go`): el backend de ventana de `app.go` delega en `positionFlyout`, que en Windows usa Win32 y en el resto usa `ScreenGetAll` + `WindowSetPosition` con `shell.CornerPosition` (geometría pura y testeada).
+4. **Arranque oculto**: Wails en Linux ignora `StartHidden` (llama a `Hide` y después a `gtk_widget_show_all`), así que `startup` oculta la ventana explícitamente en no-Windows para que la app nazca solo con el icono de bandeja.
+5. **i18n**: la clave `common.autoStart` pasa a texto neutro ("Iniciar con el sistema" / "Start with system").
+6. **Documentación**: README con requisitos y limitaciones de Linux; `AGENTS.md` con los comandos.
+
+## Restricciones conocidas (Linux)
+
+- **Wayland** puede ignorar `WindowSetPosition`: el panel aparecerá donde decida el compositor. En X11/XWayland se coloca en la esquina inferior derecha.
+- En GNOME el clic izquierdo sobre el icono puede no emitir `Activate`: el panel se abre desde **Mostrar panel** en el menú del tray.
+- Sin `DPAPI`: el token manual de OpenCode Go se guarda en base64 (no cifrado).
+- El auto-inicio XDG depende de que el escritorio respete `~/.config/autostart`.
+
+## Testing Strategy
+
+- **Go**: `autostart_xdg_test.go` (round-trip de la entrada `.desktop` en un directorio temporal, borrado y comando vacío) y `TestCornerPosition` en `flyout_test.go` (tamaño normal, tamaños inválidos y panel mayor que la pantalla).
+- **Build**: `go test ./...`, `pnpm test`, `pnpm build`, `wails build -tags webkit2_41` en Ubuntu.
+- **Manual**: lanzar el binario, abrir el panel desde el tray, comprobar servicio/acceso web/consumo y el toggle de auto-inicio.
+
+## Success Criteria
+
+- [ ] `go test ./...` y `pnpm test` pasan en Linux.
+- [ ] `wails build -tags webkit2_41` produce `build/bin/opencode-tray` ejecutable en Ubuntu.
+- [ ] El icono del tray se dibuja (PNG decodificado) y el menú abre el panel.
+- [ ] El toggle de auto-inicio crea y elimina `~/.config/autostart/opencode-tray.desktop`.
+- [ ] En Windows se sigue usando el registro y el `.ico` sin cambios de comportamiento.

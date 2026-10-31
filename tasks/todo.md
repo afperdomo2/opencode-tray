@@ -613,3 +613,51 @@
   - Acceptance: documentación y build de producción coherentes.
   - Verify: suites + build completo.
   - Files: `README.md`, `specs/*.md`, `tasks/plan.md`, `tasks/todo.md`.
+
+---
+
+## Fase 19 — Linux/Ubuntu
+
+> Spec: `SPEC-shell.md` (Iteración 10). Sin dependencias Go nuevas.
+
+- [x] **Task: Toolchain de Linux**
+  - **Hecho:** documentados `build-essential`, `pkg-config`, `libgtk-3-dev` y `libwebkit2gtk-4.1-dev`; Wails CLI v2.16 y el flag `-tags webkit2_41` (Ubuntu 26.04 solo trae WebKitGTK 4.1); `scripts/build-linux.sh` encapsula el build.
+  - Acceptance: `wails build -tags webkit2_41` produce `build/bin/opencode-tray` en Ubuntu.
+  - Verify: build real + arranque del binario.
+  - Files: `README.md`, `scripts/build-linux.sh`, `AGENTS.md`.
+
+- [x] **Task: Icono de bandeja por SO**
+  - **Hecho:** `main.go` embebe `build/windows/icon.ico` y `build/linux/icon.png` (64 px) y `trayIcon()` elige por `runtime.GOOS`; `energye/systray` usa `image.Decode`, que no lee ICO.
+  - Acceptance: el icono aparece en GNOME/AppIndicator sin errores de decodificación.
+  - Verify: log de la app + bandeja.
+  - Files: `main.go`, `build/linux/icon.png`.
+
+- [x] **Task: Auto-inicio XDG**
+  - **Hecho:** `internal/shell/autostart_xdg.go` implementa `runKey` sobre `~/.config/autostart/opencode-tray.desktop`; `autostart_other.go` queda como no-op solo para el resto de SO; textos i18n neutros ("Iniciar con el sistema" / "Start with system").
+  - Acceptance: activar crea la entrada `.desktop` con `Exec` entrecomillado; desactivar la borra.
+  - Verify: `autostart_xdg_test.go` (round-trip, borrado y comando vacío).
+  - Files: `internal/shell/autostart_xdg.go`, `internal/shell/autostart_xdg_test.go`, `internal/shell/autostart_other.go`, `frontend/src/i18n/{es,en}.json`, `frontend/src/components/ajustes.spec.ts`.
+
+- [x] **Task: Posición del panel sin Win32**
+  - **Hecho:** `app.go` delega en `positionFlyout` (`placement_windows.go` → Win32; `placement_other.go` → `ScreenGetAll` + `WindowSetPosition` con `shell.CornerPosition`).
+  - Acceptance: en X11/XWayland el panel aparece en la esquina inferior derecha; en Wayland el compositor decide sin romper nada.
+  - Verify: `TestCornerPosition` y prueba manual.
+  - Files: `placement_windows.go`, `placement_other.go`, `app.go`, `internal/shell/flyout.go`, `internal/shell/flyout_test.go`.
+
+- [x] **Task: Arranque oculto en Linux**
+  - **Hecho:** Wails v2.16 ignora `StartHidden` en Linux (`Hide` + `gtk_widget_show_all`); `App.startup` oculta la ventana en no-Windows para arrancar solo con el icono.
+  - Acceptance: al lanzar el binario no aparece el panel; se abre desde "Mostrar panel".
+  - Verify: `xwininfo` → `Map State: IsUnMapped` al arrancar y `IsViewable` tras el ítem de menú.
+  - Files: `app.go`, `AGENTS.md`, `README.md`, `specs/SPEC-shell.md`.
+
+- [x] **Task: README reordenado por plataforma**
+  - **Hecho:** README con TOC y anclas, "Inicio rápido" (Ubuntu en 4 comandos / Windows en 2), sección "Probar la app" con checklist de humo y tabla de problemas frecuentes, builds separados por SO y limitaciones unificadas; se documenta el `export PATH="$HOME/go/bin"` que faltaba.
+  - Acceptance: quien clona encuentra cómo compilar y ejecutar en Ubuntu en la primera pantalla, sin mezclar pasos de Windows.
+  - Verify: enlaces relativos y anclas del TOC validados; `AGENTS.md` sin referencias a secciones viejas.
+  - Files: `README.md`, `AGENTS.md`, `tasks/todo.md`.
+
+- [x] **Task: Documentar limitaciones y validar**
+  - **Hecho:** README (requisitos, build y limitaciones de Linux), `AGENTS.md`, `SPEC-shell.md` (Iteración 10), `CAPABILITY-MAP`, plan y todo sincronizados.
+  - Acceptance: documentación coherente y build verde en Linux.
+  - Verify: `go test ./...`, `pnpm test`, `pnpm build`, `wails build -tags webkit2_41`.
+  - Files: `README.md`, `AGENTS.md`, `specs/SPEC-shell.md`, `specs/CAPABILITY-MAP.md`, `tasks/plan.md`, `tasks/todo.md`.

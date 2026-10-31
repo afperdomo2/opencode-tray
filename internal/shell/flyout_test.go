@@ -88,3 +88,25 @@ func TestClampFlyoutHeight(t *testing.T) {
 		})
 	}
 }
+
+func TestCornerPosition(t *testing.T) {
+	work := Rect{Left: 0, Top: 0, Right: 1920, Bottom: 1080}
+
+	tests := []struct {
+		name          string
+		width, height int
+		want          Point
+	}{
+		{name: "tamaño del flyout", width: 380, height: 600, want: Point{X: 1532, Y: 472}},
+		{name: "tamaño inválido usa mínimos", width: 0, height: 0, want: Point{X: 1532, Y: 752}},
+		{name: "más grande que el área", width: 3000, height: 2000, want: Point{X: 0, Y: 0}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := CornerPosition(work, tt.width, tt.height); got != tt.want {
+				t.Errorf("CornerPosition(%+v, %d, %d) = %+v, want %+v", work, tt.width, tt.height, got, tt.want)
+			}
+		})
+	}
+}

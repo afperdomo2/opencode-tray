@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"runtime"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -14,10 +15,23 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
-// Icono de la bandeja (se usa como imagen del tray).
+// Iconos de la bandeja: ICO en Windows y PNG en el resto (Linux/macOS), porque
+// `energye/systray` decodifica la imagen con image.Decode, que no soporta ICO.
 //
 //go:embed build/windows/icon.ico
-var trayIcon []byte
+var trayIconICO []byte
+
+//go:embed build/linux/icon.png
+var trayIconPNG []byte
+
+// trayIcon devuelve el icono en el formato que la bandeja sabe decodificar en
+// el SO actual.
+func trayIcon() []byte {
+	if runtime.GOOS == "windows" {
+		return trayIconICO
+	}
+	return trayIconPNG
+}
 
 func main() {
 	// Una sola instancia: si ya hay otra corriendo, salir en silencio.
@@ -33,7 +47,7 @@ func main() {
 	// bucle de mensajes. Si se registrara dentro de OnStartup (que Wails ejecuta
 	// en otra goroutine), la ventana del tray quedaría en un hilo sin bucle de
 	// mensajes y los clics/menú no funcionarían.
-	app.initTray(trayIcon)
+	app.initTray(trayIcon())
 
 	err := wails.Run(&options.App{
 		Title:            "OpenCode Tray",

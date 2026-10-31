@@ -1,14 +1,15 @@
 # AGENTS.md — OpenCode Tray
 
-App de bandeja (tray) para Windows que controla el servicio de OpenCode, el acceso web (local/red/remoto), muestra el consumo de OpenCode Go, permite ver la configuración (MCP/skills/agents) y emite notificaciones nativas.
+App de bandeja (tray) para Windows (y Linux para desarrollo y prueba) que controla el servicio de OpenCode, el acceso web (local/red/remoto), muestra el consumo de OpenCode Go, permite ver la configuración (MCP/skills/agents) y emite notificaciones nativas.
 
-Stack: **Wails v2 + Go 1.24+ + Vue 3 / Vite / TypeScript**.
+Stack: **Wails v2.16 + Go 1.25+ + Vue 3 / Vite / TypeScript**.
 
 ## Comandos
 
 ```bash
 wails dev                 # desarrollo (hot reload)
-wails build               # build (.exe portable)
+wails build               # Windows: .exe portable
+./scripts/build-linux.sh  # Linux: ELF (wails build -tags webkit2_41)
 go test ./...             # tests backend
 cd frontend && pnpm test   # tests frontend (Vitest)
 powershell -ExecutionPolicy Bypass -File scripts/build-installer.ps1  # portable + instalador Inno Setup
@@ -23,6 +24,8 @@ powershell -ExecutionPolicy Bypass -File scripts/build-installer.ps1  # portable
 - `frontend/` — UI Vue 3.
 - `build/windows/installer/opencode-tray.iss` — definición del instalador Inno Setup (se trackea).
 - `scripts/build-installer.ps1` — build portable + instalador (se trackea).
+- `scripts/build-linux.sh` — build para Linux (`-tags webkit2_41`); se trackea.
+- `build/linux/icon.png` — icono de bandeja en Linux (64 px, PNG; `image.Decode` no lee ICO).
 
 ## Flujo de trabajo (SDD)
 
@@ -30,9 +33,11 @@ Las specs son la fuente de verdad. Ante un cambio de requisitos, alcance o arqui
 
 ## Notas técnicas (gotchas)
 
-- **`wails dev` no sirve para validar frontend ↔ backend**: en modo dev el puente `window.go` puede quedar sin definir (quirk del proxy de Vite de Wails), haciendo fallar todas las llamadas al backend. **Validar siempre con el build de producción** (`wails build` → `build/bin/opencode-tray.exe`). Ver README → "Limitaciones conocidas".
+- **`wails dev` no sirve para validar frontend ↔ backend**: en modo dev el puente `window.go` puede quedar sin definir (quirk del proxy de Vite de Wails), haciendo fallar todas las llamadas al backend. **Validar siempre con el build de producción** (`wails build` → `build/bin/opencode-tray.exe`; `./scripts/build-linux.sh` → `build/bin/opencode-tray`). Ver README → "Limitaciones conocidas".
 - **El tray se registra en `main`, antes de `wails.Run`**: Wails v2.16 ejecuta `OnStartup` en otra goroutine. Si `energye/systray` se registra allí, la ventana `SystrayClass` queda en un hilo sin bucle de mensajes: el icono aparece pero el clic izquierdo y el menú contextual no responden. `app.initTray(trayIcon)` debe seguir en `main`.
-- **Instalador**: `build/windows/installer/opencode-tray.iss` y `scripts/build-installer.ps1` se trackean; `build/bin/` no. Para compilar el instalador se requiere **Inno Setup 6.3+** (`ISCC.exe`). Ver README → "Build y despliegue (Windows)".
+- **Instalador**: `build/windows/installer/opencode-tray.iss` y `scripts/build-installer.ps1` se trackean; `build/bin/` no. Para compilar el instalador se requiere **Inno Setup 6.3+** (`ISCC.exe`). Ver README → "Build — Windows".
+- **`StartHidden` no funciona en Linux (Wails v2.16)**: `internal/frontend/desktop/linux/window.go` llama a `Hide` y acto seguido a `gtk_widget_show_all`, así que la ventana aparece al arrancar. `App.startup` la oculta explícitamente en no-Windows; no quitar esa guarda.
+- **Linux/Ubuntu**: requiere `build-essential`, `pkg-config`, `libgtk-3-dev` y `libwebkit2gtk-4.1-dev`, más `CGO_ENABLED=1`. Ubuntu 24.04+ solo trae WebKitGTK 4.1 → compilar con `-tags webkit2_41` (lo hace `scripts/build-linux.sh`). El panel no se ancla al tray (esquina inferior derecha, y Wayland puede ignorarlo), no hay instancia única y el token manual se guarda en base64 (sin DPAPI). Detalle en `specs/SPEC-shell.md` → Iteración 10.
 
 ## Reglas
 

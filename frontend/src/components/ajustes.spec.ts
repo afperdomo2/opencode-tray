@@ -65,7 +65,7 @@ describe('Ajustes', () => {
     const toggles = w.findAll('input[type="checkbox"]')
     // auto-inicio + 3 tipos de notificación
     expect(toggles.length).toBe(4)
-    expect(w.text()).toContain('Iniciar con Windows')
+    expect(w.text()).toContain('Iniciar con el sistema')
     expect(w.text()).toContain('Ritmo de consumo')
     expect(w.text()).toContain('Casi sin saldo')
     expect(w.text()).toContain('Servicio detenido')

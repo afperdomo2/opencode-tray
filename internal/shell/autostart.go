@@ -2,15 +2,16 @@ package shell
 
 import "fmt"
 
-// runKey abstracta las operaciones sobre la clave HKCU\...\Run,
-// para poder testear la lógica sin tocar el registro real.
+// runKey abstracta el almacén de autoarranque del SO (HKCU\...\Run en Windows,
+// ~/.config/autostart en Linux), para poder testear la lógica sin tocar el
+// sistema real.
 type runKey interface {
 	Set(name, value string) error
 	Delete(name string) error
 	Get(name string) (string, bool, error)
 }
 
-// AutoStart gestiona el arranque automático con Windows.
+// AutoStart gestiona el arranque automático con el sistema operativo.
 type AutoStart struct {
 	key     runKey
 	exePath func() (string, error)

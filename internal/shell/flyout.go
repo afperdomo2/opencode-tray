@@ -94,6 +94,23 @@ func ClampFlyoutHeight(height, workHeight int) int {
 	return height
 }
 
+// CornerPosition calcula la esquina superior izquierda del panel para la
+// esquina inferior derecha del área de trabajo. Se usa en los SO donde no hay
+// una API para leer la geometría del icono del tray (Linux/macOS): el panel
+// aparece como un flyout flotante en esa esquina.
+func CornerPosition(work Rect, width, height int) Point {
+	if width <= 0 {
+		width = FlyoutWidth
+	}
+	if height <= 0 {
+		height = FlyoutMinHeight
+	}
+	return Point{
+		X: clamp(work.Right-width-flyoutMargin, work.Left, work.Right),
+		Y: clamp(work.Bottom-height-flyoutMargin, work.Top, work.Bottom),
+	}
+}
+
 // AnchorPosition calcula la esquina superior izquierda del panel para que quede
 // pegado a la taskbar y alineado con el icono. width/height están en píxeles
 // físicos.

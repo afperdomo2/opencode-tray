@@ -2,11 +2,13 @@
 
 > Estado: **APROBADO** ✅ (Phase 0 del flujo SDD).
 
+> **Plataformas:** Windows (principal, distribución) y Linux/Ubuntu (desarrollo y prueba). Detalle en `SPEC-shell.md` → Iteración 10.
+
 ## Módulos
 
 | Module id | Responsabilidad | Depende de |
 |---|---|---|
-| `shell` | App Wails: icono de bandeja, ciclo de vida de la ventana del panel, una sola instancia, persistencia de ajustes (config local), toggle de auto-inicio con Windows, i18n (es/en) | — |
+| `shell` | App Wails: icono de bandeja, ciclo de vida de la ventana del panel, una sola instancia, persistencia de ajustes (config local), toggle de auto-inicio del SO (registro en Windows, XDG en Linux), i18n (es/en) | — |
 | `service-control` | Estado del servicio de fondo de OpenCode, `start` / `stop` / `restart`, y **force-stop** (workaround: leer `pid` de `/api/info` y matar el proceso) | `shell` |
 | `web-access` | Modos de acceso web: **local** / **red (por IP)** / **remoto (túnel)**, exclusivos (el remoto se apaga al volver a local/red); URLs reales local/LAN/remoto (vía `/api/info`) con abrir/copiar; mostrar y cambiar el usuario (`opencode`) y la contraseña | `shell`, `service-control` |
 | `usage` | Consultar y mostrar el consumo de OpenCode Go (ventanas `rolling` / `weekly` / `monthly`), resolver el token vigente (OpenCode v2 export → `auth.json` legado → manual DPAPI), releerlo bajo demanda y **humanizar el reinicio para el tooltip** | `shell` |

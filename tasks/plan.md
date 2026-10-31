@@ -5,7 +5,7 @@
 
 ## 1. Resumen
 
-App de bandeja (tray) para Windows con Wails v2 (Go) + Vue 3/Vite/TS que controla el servicio de OpenCode, el acceso web (local/red/remoto), muestra el consumo de OpenCode Go, permite ver la config (MCP/skills/agents) y emite notificaciones nativas. Se construye **por módulos, en orden de dependencias, con tests desde el inicio**.
+App de bandeja (tray) para Windows (y Linux para desarrollo y prueba) con Wails v2 (Go) + Vue 3/Vite/TS que controla el servicio de OpenCode, el acceso web (local/red/remoto), muestra el consumo de OpenCode Go, permite ver la config (MCP/skills/agents) y emite notificaciones nativas. Se construye **por módulos, en orden de dependencias, con tests desde el inicio**.
 
 ## 2. Componentes y dependencias
 
@@ -48,6 +48,7 @@ shell
 | 16 | `shell` | **fix del tray**: registrar `energye/systray` en el hilo principal (`main`, antes de `wails.Run`) para que el clic izquierdo abra el panel y el clic derecho muestre el menú |
 | 17 | `resumen` + `ui-ux` | **dashboard de widgets**: consumo con las tres barras, servicio y acceso en tiles, MCP en chips, widgets clicables con teclado, tintes de estado suaves y layout bento |
 | 18 | `resumen` + `web-access` + `service-control` + `ui-ux` | **frescura de datos**: caché compartido con refresco suave/duro, skeleton solo en primera carga/refresco manual/mutación, invalidación entre pestañas, polling silencioso del servicio y una sola lectura de estado/config por llamada (Snapshot + TTL corto) |
+| 19 | `shell` | **Linux/Ubuntu**: icono PNG por SO, auto-inicio XDG, posición del panel en la esquina inferior derecha, toolchain `webkit2_41` y documentación de limitaciones |
 
 Las fases 3a/3b/3c se pueden hacer **en paralelo** (independientes entre sí).
 
@@ -85,6 +86,7 @@ Cada fase termina con su checkpoint antes de pasar a la siguiente:
 - **Fase 16**: clic izquierdo abre/cierra el panel, clic derecho abre el menú y "Salir" cierra la app; tray creado en el hilo principal; tests y build en verde.
 - **Fase 17**: Resumen con 4 widgets, barras de consumo intactas, servicio/acceso con estado visual accesible, MCP sin estado textual por item, navegación por clic/teclado; tests y build en verde.
 - **Fase 18**: navegar entre pestañas con datos frescos no hace petición ni muestra skeleton; refresco manual y mutaciones muestran skeleton desde el inicio; Resumen refleja el estado tras stop/start; sin textos de "Actualizando…"; `WebAccessState` hace 1 status + 1 config (y `/api/info` solo en red/remoto); tests y build en verde.
+- **Fase 19**: `go test ./...` y `pnpm test` pasan en Linux; `wails build -tags webkit2_41` produce un binario que arranca en Ubuntu; el icono del tray se dibuja; el toggle de auto-inicio crea/borra `~/.config/autostart/opencode-tray.desktop`; en Windows no cambia nada.
 
 ## 6. Estrategia de testing (desde el inicio)
 
@@ -103,4 +105,5 @@ Cada fase termina con su checkpoint antes de pasar a la siguiente:
 ## 8. Distribución
 
 - **v1**: `.exe` portable (un solo binario vía `wails build`).
+- **Linux**: binario ELF con `wails build -tags webkit2_41`, para desarrollo y prueba local (sin instalador ni paquete `.deb`).
 - **Posterior**: instalador NSIS. (Registrado para no olvidar.)

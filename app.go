@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -142,6 +143,13 @@ func (a *App) startup(ctx context.Context) {
 	// Sacar la ventana de la barra de tareas y de Alt+Tab.
 	shell.PrepareFlyoutWindow()
 
+	// En Linux, Wails ignora StartHidden: window.go llama a Hide y acto seguido
+	// a gtk_widget_show_all, así que el panel aparece al arrancar. Se oculta
+	// aquí para que la app nazca solo con el icono de bandeja, como en Windows.
+	if runtime.GOOS != "windows" {
+		wailsruntime.WindowHide(ctx)
+	}
+
 	// Envío de notificaciones DESHABILITADO (Fase 4): inyectar aquí
 	// wailsruntime.SendNotification (go-toast en Windows) bloqueaba el bucle de
 	// mensajes de energye/systray y dejaba la bandeja muda (ni clic izquierdo ni
@@ -173,7 +181,7 @@ func (w wailsWindow) Resize(width, height int) {
 }
 
 func (w wailsWindow) Place(anchor shell.Point, width, height int) {
-	shell.PositionFlyout(anchor, width, height)
+	positionFlyout(w.ctx, anchor, width, height)
 }
 
 func (w wailsWindow) Focus() { shell.FocusFlyout() }

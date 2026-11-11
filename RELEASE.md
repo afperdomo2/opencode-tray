@@ -1,6 +1,14 @@
-# Release — OpenCode Tray v1.3.1
+# Release — OpenCode Tray v1.4.0
 
 App de bandeja (tray) para Windows que controla el servicio de OpenCode, el acceso web, el consumo de OpenCode Go y la configuración.
+
+## Novedades v1.4.0 — versión y compilación visibles
+
+- **Ajustes → Acerca de**: nueva tarjeta al final con la **versión**, el **commit** de git (con `*` si hay cambios sin commitear), la **fecha de compilación** y la **plataforma** (`linux/amd64`, `windows/amd64`).
+- **Copiar información**: botón que copia la versión y la compilación al portapapeles, para reportar problemas o comparar instalaciones.
+- **Fuente única de versión**: `Info.productVersion` de `wails.json` se embebe en el binario. Un `wails build` directo ya muestra la versión correcta; los scripts añaden commit y fecha con `-ldflags` (Wails usa `-buildvcs=false`).
+- **Scripts**: `scripts/build-linux.sh` y `scripts/build-installer.ps1` inyectan commit, fecha y marca de cambios sin commitear; sin git muestran “No disponible” sin romper el build.
+- **Versión 1.4.0** en `wails.json`, instalador y `.deb`.
 
 ## Novedades v1.3.1 (Linux/Ubuntu)
 
@@ -43,7 +51,7 @@ App de bandeja (tray) para Windows que controla el servicio de OpenCode, el acce
 
 ## Artefacto
 
-- `build/bin/opencode-tray.exe` — binario **portable único** (Windows 10/11 + WebView2). Instalador per-user opcional: `build/bin/OpenCodeTray-Setup-1.3.0.exe` (Inno Setup).
+- `build/bin/opencode-tray.exe` — binario **portable único** (Windows 10/11 + WebView2). Instalador per-user opcional: `build/bin/OpenCodeTray-Setup-1.4.0.exe` (Inno Setup).
 
 ## Qué incluye
 
@@ -51,7 +59,7 @@ App de bandeja (tray) para Windows que controla el servicio de OpenCode, el acce
 - **Consumo**: barras de OpenCode Go (ventanas `rolling` / `weekly` / `monthly`) con estado ok / warn / crítico.
 - **Acceso web**: modos local / red (por IP) / remoto (túnel), exclusivos; URLs reales con **abrir** y **copiar**; usuario (`opencode`) y contraseña (enmascarada) + cambio de contraseña.
 - **Config**: visor de servidores MCP y del JSON de configuración global (secretos enmascarados) + abrir en editor externo.
-- **Ajustes**: auto-inicio con Windows, idioma (es/en), toggles de notificaciones.
+- **Ajustes**: auto-inicio con Windows, idioma (es/en), toggles de notificaciones y **Acerca de** (versión + compilación con copiar).
 - i18n español/inglés, una sola instancia (single-instance), panel oscuro con sistema de diseño (Dark Mode OLED).
 
 ## Limitación conocida
@@ -73,7 +81,8 @@ App de bandeja (tray) para Windows que controla el servicio de OpenCode, el acce
 - [ ] **Consumo**: muestra las tres barras (o mensaje claro si no hay token/suscripción).
 - [ ] **Tooltip**: al pasar el cursor muestra barra, % mensual y reinicio humanizado; se actualiza sin abrir el panel.
 - [ ] **Acceso web**: muestra las URLs con badge y permite abrir/copiar; remoto pide confirmación y se apaga al volver a local/red.
-- [ ] **Instalador**: `OpenCodeTray-Setup-1.3.0.exe` instala por usuario, detecta WebView2 y desinstala limpio.
+- [ ] **Instalador**: `OpenCodeTray-Setup-1.4.0.exe` instala por usuario, detecta WebView2 y desinstala limpio.
 - [ ] **Config**: enmascara secretos y abre el editor.
 - [ ] **Ajustes**: auto-inicio escribe/borra la clave del registro; idioma alterna es/en.
+- [ ] **Ajustes → Acerca de**: muestra `v1.4.0` y la compilación; el botón copiar funciona.
 - [ ] Segunda instancia enfoca la existente (single-instance).

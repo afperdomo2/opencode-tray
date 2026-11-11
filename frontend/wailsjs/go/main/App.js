@@ -18,6 +18,10 @@ export function ConfigOpenInEditor() {
   return window['go']['main']['App']['ConfigOpenInEditor']();
 }
 
+export function GetAppVersion() {
+  return window['go']['main']['App']['GetAppVersion']();
+}
+
 export function GetSettings() {
   return window['go']['main']['App']['GetSettings']();
 }

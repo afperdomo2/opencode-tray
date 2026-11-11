@@ -135,6 +135,18 @@
     "service": "Servicio detenido",
     "test": "Probar ahora"
   },
+  "about": {
+    "title": "Acerca de",
+    "version": "Versión",
+    "commit": "Compilación",
+    "date": "Fecha",
+    "platform": "Plataforma",
+    "copy": "Copiar información",
+    "copied": "Información copiada",
+    "copyError": "No se pudo copiar la información.",
+    "unavailable": "No disponible",
+    "dirtyHint": "Hay cambios sin commitear"
+  },
   "common": {
     "loading": "Cargando…",
     "language": "Idioma",

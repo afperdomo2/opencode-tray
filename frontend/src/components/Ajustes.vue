@@ -6,6 +6,7 @@ import Switch from './Switch.vue'
 import LanguageSwitch from './LanguageSwitch.vue'
 import SegmentedControl from './SegmentedControl.vue'
 import Skeleton from './Skeleton.vue'
+import AcercaDe from './AcercaDe.vue'
 import { NotifySetEnabled, NotifyEvaluate } from '../../wailsjs/go/main/App'
 import {
   loadSettings,
@@ -221,5 +222,7 @@ async function clearToken() {
         </div>
       </div>
     </div>
+
+    <AcercaDe />
   </section>
 </template>

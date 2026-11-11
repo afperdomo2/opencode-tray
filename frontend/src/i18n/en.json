@@ -135,6 +135,18 @@
     "service": "Service stopped",
     "test": "Test now"
   },
+  "about": {
+    "title": "About",
+    "version": "Version",
+    "commit": "Build",
+    "date": "Date",
+    "platform": "Platform",
+    "copy": "Copy info",
+    "copied": "Info copied",
+    "copyError": "Could not copy the info.",
+    "unavailable": "Not available",
+    "dirtyHint": "There are uncommitted changes"
+  },
   "common": {
     "loading": "Loading…",
     "language": "Language",

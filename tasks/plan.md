@@ -52,6 +52,7 @@ shell
 | 20 | `shell` | **instalación en Ubuntu**: paquete `.deb` con icono en el menú, instancia única (flock + socket `show`), `--show-panel` y resolución automática del CLI de OpenCode |
 | 21 | `shell` + `ui-ux` | **pulido en Ubuntu**: control segmentado (sin `<select>` nativo), consumo en el menú del tray, panel centrado y arrastrable |
 | 22 | `shell` | **identidad visual**: iconos propios desde `brand/` (SVG), script Chrome+Pillow, `tray.ico` de Windows, icono de bandeja Linux y tests de assets |
+| 23 | `shell` | **versión y build visibles**: `wails.json` como fuente única embebida, commit/fecha por `-ldflags` en los scripts, `GetAppVersion()` y tarjeta **Acerca de** con copiar en Ajustes |
 
 Las fases 3a/3b/3c se pueden hacer **en paralelo** (independientes entre sí).
 

@@ -44,8 +44,20 @@ try {
         Write-Warning "OpenCode Tray está en ejecución. Ciérralo desde el menú de la bandeja antes de compilar para poder reemplazar el .exe."
     }
 
+    # Wails compila con -buildvcs=false: el commit y la fecha se inyectan aquí.
+    # La versión no se inyecta: buildinfo.go embebe wails.json (fuente única).
+    $commit = ""
+    try { $commit = (git rev-parse --short HEAD 2>$null) } catch {}
+    $dirty = "false"
+    try {
+        $status = git status --porcelain 2>$null
+        if ($status) { $dirty = "true" }
+    } catch {}
+    $buildDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+    $ldflags = "-X main.buildCommit=$commit -X main.buildDate=$buildDate -X main.buildDirty=$dirty"
+
     Write-Host "==> wails build" -ForegroundColor Cyan
-    wails build -clean -webview2 download
+    wails build -clean -webview2 download -ldflags $ldflags
     if ($LASTEXITCODE -ne 0) {
         throw "wails build falló (código $LASTEXITCODE)."
     }

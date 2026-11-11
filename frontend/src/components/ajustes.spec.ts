@@ -18,6 +18,13 @@ const mocks = vi.hoisted(() => ({
 // Mock del puente con el backend para que el test no dependa de Wails.
 vi.mock('../../wailsjs/go/main/App', () => ({
   GetSettings: vi.fn().mockResolvedValue({ language: 'es', autoStart: false, refreshMin: 15 }),
+  GetAppVersion: vi.fn().mockResolvedValue({
+    version: '1.4.0',
+    commit: 'a1b2c3d',
+    date: '2026-11-11T15:04:05Z',
+    dirty: false,
+    platform: 'linux/amd64',
+  }),
   SetAutoStart: vi.fn().mockResolvedValue(undefined),
   SetLanguage: vi.fn().mockResolvedValue(undefined),
   SetRefreshMin: vi.fn().mockResolvedValue(undefined),
@@ -73,6 +80,11 @@ describe('Ajustes', () => {
     expect(w.text()).toContain('Token vigente de OpenCode')
     expect(w.find('.settings-grid').exists()).toBe(true)
     expect(w.findAll('.settings-grid > .card').length).toBe(4)
+    // "Acerca de" va después del grid, no lo altera.
+    const about = w.find('.about-card')
+    expect(about.exists()).toBe(true)
+    expect(w.element.querySelector('.settings-grid')?.nextElementSibling).toBe(about.element)
+    expect(about.text()).toContain('v1.4.0')
   })
 
   it('cambia el intervalo con el control segmentado (sin <select> nativo)', async () => {

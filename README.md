@@ -146,7 +146,7 @@ En Windows el `.exe` no abre consola; si necesitas ver errores, usa `wails dev` 
 - **Resumen**: dashboard de inicio en formato **widgets (bento)**: consumo con las tres barras, servicio con estado/URL, acceso web con icono y color por modo (Local/Red/Remoto) y MCP con chips. Servicio, Acceso y MCP son **clicables** para saltar a su sección; Consumo mantiene los CTAs de token. Todo es de solo lectura salvo reintentar el token o configurar la API key.
 - **Servicio** (unifica el antiguo Config): estado + URI con puerto y control con etiquetas cortas (iniciar / detener / forzar / refrescar) + servidores MCP + configuración (editor / carpeta / **JSON en modal**). Los botones muestran su descripción completa al pasar el cursor.
 - **Acceso web**: modos local / red (por IP) / remoto (túnel), exclusivos: al volver a local/red se **desactiva el túnel remoto**. Muestra las URLs reales con su tipo (Local / LAN / Remoto), botón para **abrir en el navegador** y botón para **copiar** con confirmación. El modo remoto pide **confirmación explícita** (expone el servidor a Internet). Incluye usuario (`opencode`), contraseña enmascarada, cambio de contraseña y un botón para **refrescar** el estado y las URLs. En modo local la URL sale de `opencode service status` (puerto real); en red/remoto se obtienen de `/api/info` las IPs LAN reales y el enlace del túnel.
-- **Ajustes**: idioma (es/en), auto-inicio con el sistema (registro en Windows, XDG Autostart en Linux), switches de notificaciones, tarjeta de **OpenCode Go** (estado del token, reintento desde OpenCode, API key manual cifrada con DPAPI en Windows y base64 en Linux) e intervalo de refresco (1/5/15/30/60 min).
+- **Ajustes**: idioma (es/en), auto-inicio con el sistema (registro en Windows, XDG Autostart en Linux), switches de notificaciones, tarjeta de **OpenCode Go** (estado del token, reintento desde OpenCode, API key manual cifrada con DPAPI en Windows y base64 en Linux), intervalo de refresco (1/5/15/30/60 min) y tarjeta **Acerca de** al final con la versión, la compilación (commit + fecha), la plataforma y un botón para **copiar la información**.
 
 La UI usa iconos SVG (sin emoji), botones `btn` en tamaño compacto estándar, control segmentado de idioma, switches estilizados y cards con profundidad (design system). El layout es responsive con CSS Grid/Flexbox y container queries, sin dependencias de UI. La navegación es un footer fijo de 4 pestañas (icono + texto) y el contenido es la única zona con scroll. Los datos de Servicio, MCP, Acceso web y Consumo comparten un **caché en memoria** con claves comunes: volver a una pestaña con datos frescos (10–15 s) no repite la petición ni muestra skeleton. El **skeleton** aparece solo en la primera carga, en el refresco manual y desde el inicio de una mutación (iniciar/detener el servicio, cambiar modo o contraseña). Las revalidaciones en segundo plano y el polling silencioso del servicio (cada 15 s con el panel visible) sustituyen los datos sin skeleton ni texto de “Actualizando…”. Un cambio hecho en Servicio/Acceso invalida el caché compartido, así que Resumen refleja el nuevo estado (con skeleton mientras llega). La lista de URLs usa 2 filas esqueleto con la misma altura que las filas reales.
 
@@ -158,7 +158,7 @@ La UI usa iconos SVG (sin emoji), botones `btn` en tamaño compacto estándar, c
 ```bash
 wails dev                  # hot reload (lee la limitación del puente más abajo)
 go test ./...              # tests backend (Go)
-cd frontend && pnpm test    # tests frontend (Vitest): 69 tests
+cd frontend && pnpm test    # tests frontend (Vitest): 79 tests
 cd frontend && pnpm build   # type-check (vue-tsc) + build del frontend
 ```
 
@@ -169,7 +169,7 @@ cd frontend && pnpm build   # type-check (vue-tsc) + build del frontend
 
 | Ruta | Qué hay |
 |---|---|
-| `main.go` / `app.go` | Entry point de Wails, tray, wiring de módulos y ventana |
+| `main.go` / `app.go` / `buildinfo.go` | Entry point de Wails, tray, wiring de módulos, ventana y versión/build |
 | `internal/shell` | Tray, ciclo de vida del panel, ajustes, auto-inicio, i18n |
 | `internal/servicecontrol` | Estado y control del servicio de OpenCode |
 | `internal/webaccess` | Modos de acceso, URLs y credenciales |
@@ -204,6 +204,13 @@ El símbolo es un **prompt de terminal** (`>_`): tile oscuro para la app y el `.
 Si cambiás un SVG, corré el script **antes** de compilar: `build/linux/icon.png` y `build/windows/tray.ico` se embeben en el binario. `go test ./...` valida tamaños y formato de los iconos.
 
 En Windows, Explorer puede conservar el icono viejo en caché. Si después de recompilar sigue apareciendo la “W”, ejecutá `ie4uinit.exe -show` o reinstalá la app.
+
+### Versión y compilación
+
+- **Fuente única**: `Info.productVersion` de `wails.json`. Alimenta los metadatos del `.exe`, el instalador, el `.deb` y la tarjeta **Ajustes → Acerca de**.
+- El binario **embebe `wails.json`**, así que un `wails build` directo también muestra la versión correcta (sin pasar por los scripts).
+- El **commit, la fecha y la marca de cambios sin commitear** se inyectan con `-ldflags` desde `scripts/build-linux.sh` y `scripts/build-installer.ps1` (Wails compila con `-buildvcs=false`). Si compilás sin esos scripts, la UI muestra “No disponible” en compilación y fecha, pero la versión sigue siendo la de `wails.json`.
+- Para publicar una versión: actualizá `Info.productVersion`, sincronizá `RELEASE.md` y recompilá. La app reporta ese valor automáticamente.
 
 ---
 
@@ -252,7 +259,7 @@ wails build -clean -webview2 download
 powershell -ExecutionPolicy Bypass -File scripts\build-installer.ps1
 
 # 3) forzando una versión concreta
-powershell -ExecutionPolicy Bypass -File scripts\build-installer.ps1 -Version 1.3.0
+powershell -ExecutionPolicy Bypass -File scripts\build-installer.ps1 -Version 1.4.0
 ```
 
 El script:
@@ -265,7 +272,7 @@ El script:
 También puedes compilar el instalador a mano:
 
 ```powershell
-iscc /DMyAppVersion=1.3.0 build\windows\installer\opencode-tray.iss
+iscc /DMyAppVersion=1.4.0 build\windows\installer\opencode-tray.iss
 ```
 
 La versión del `.exe` sale de `Info.productVersion` en `wails.json`; mantén ese valor y `-Version` sincronizados.
@@ -306,6 +313,7 @@ Sin certificado, Windows SmartScreen puede mostrar una advertencia. Si tienes ce
 
 - [ ] `go test ./...`, `pnpm test` y `pnpm build` en verde.
 - [ ] `Info.productVersion` en `wails.json` actualizado y `RELEASE.md` sincronizado.
+- [ ] **Ajustes → Acerca de** muestra la versión nueva (y commit/fecha si se compiló con los scripts).
 - [ ] `./scripts/generate-icons.sh` ejecutado si cambió `brand/` (y assets commiteados).
 - [ ] `wails build -clean -webview2 download` genera el portable.
 - [ ] `scripts/build-installer.ps1` genera el instalador.
@@ -345,7 +353,7 @@ El binario queda en `build/bin/opencode-tray` (gitignored). Para recompilar tras
 
 ```bash
 ./scripts/build-deb.sh                                   # → dist/opencode-tray_<versión>_amd64.deb
-sudo apt install ./dist/opencode-tray_1.3.0_amd64.deb
+sudo apt install ./dist/opencode-tray_1.4.0_amd64.deb
 ```
 
 El paquete instala tres cosas:

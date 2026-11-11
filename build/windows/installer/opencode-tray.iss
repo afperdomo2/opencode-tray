@@ -2,11 +2,11 @@
 ; Instalación POR USUARIO: no requiere administrador.
 ;
 ; Compilar:
-;   iscc /DMyAppVersion=1.3.0 build\windows\installer\opencode-tray.iss
+;   iscc /DMyAppVersion=1.4.0 build\windows\installer\opencode-tray.iss
 ; o usar scripts\build-installer.ps1.
 
 #ifndef MyAppVersion
-  #define MyAppVersion "1.3.0"
+  #define MyAppVersion "1.4.0"
 #endif
 
 #define MyAppName "OpenCode Tray"

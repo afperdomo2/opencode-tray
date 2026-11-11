@@ -758,3 +758,33 @@
   - Acceptance: documentación coherente y build en verde.
   - Verify: `go test ./...`, `./scripts/build-linux.sh` y `./scripts/build-deb.sh`.
   - Files: `README.md`, `AGENTS.md`, `specs/SPEC-shell.md`, `tasks/plan.md`, `tasks/todo.md`.
+
+---
+
+## Fase 23 — versión y build visibles
+
+> Spec: `SPEC-shell.md` (Iteración 14).
+
+- [x] **Task: Exponer versión y build en el backend**
+  - **Hecho:** `buildinfo.go` embebe `wails.json` (fuente única), acepta `buildCommit`/`buildDate`/`buildDirty` por `-ldflags` y expone `App.GetAppVersion()` con versión, commit corto, fecha UTC, dirty y plataforma.
+  - Acceptance: un `wails build` directo reporta `1.4.0`; con los scripts reporta commit y fecha.
+  - Verify: `buildinfo_test.go`.
+  - Files: `buildinfo.go`, `buildinfo_test.go`.
+
+- [x] **Task: Inyectar commit y fecha en los builds**
+  - **Hecho:** `scripts/build-linux.sh` y `scripts/build-installer.ps1` calculan commit/fecha/dirty y pasan `-ldflags`; sin git lo omiten.
+  - Acceptance: el binario compilado con los scripts muestra la compilación real.
+  - Verify: `go version -m` + tarjeta Acerca de.
+  - Files: `scripts/build-linux.sh`, `scripts/build-installer.ps1`.
+
+- [x] **Task: Tarjeta Acerca de en Ajustes**
+  - **Hecho:** `AcercaDe.vue` al final de Ajustes con versión, compilación, fecha, plataforma y botón copiar; i18n es/en y estilos.
+  - Acceptance: la información se ve y se copia; no altera el grid de ajustes.
+  - Verify: `acerca-de.spec.ts`, `ajustes.spec.ts`.
+  - Files: `frontend/src/components/AcercaDe.vue`, `acerca-de.spec.ts`, `Ajustes.vue`, `ajustes.spec.ts`, `style.css`, i18n es/en.
+
+- [x] **Task: Documentar y publicar 1.4.0**
+  - **Hecho:** `wails.json` a 1.4.0, `RELEASE.md`, `SPEC-shell.md` (Iteración 14), `CAPABILITY-MAP.md`, plan/todo, `README.md` y `AGENTS.md`; bindings regenerados.
+  - Acceptance: documentación coherente y builds en verde.
+  - Verify: `go test ./...`, `pnpm test`, `pnpm build`, `./scripts/build-linux.sh`, `./scripts/build-deb.sh`.
+  - Files: `wails.json`, `RELEASE.md`, `specs/SPEC-shell.md`, `specs/CAPABILITY-MAP.md`, `tasks/plan.md`, `tasks/todo.md`, `README.md`, `AGENTS.md`, `frontend/wailsjs/go/main/*`, `frontend/wailsjs/go/models.ts`.

@@ -888,6 +888,42 @@ code {
   margin-bottom: 0;
 }
 
+/* --- Acerca de: va debajo del grid de Ajustes, a ancho completo --- */
+.about-card {
+  margin-top: var(--space-md);
+}
+
+.about-rows {
+  display: grid;
+  gap: var(--space-xs);
+  margin: 0;
+}
+
+.about-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-width: 0;
+  font-size: 13px;
+}
+
+.about-label {
+  color: var(--muted);
+}
+
+.about-value {
+  margin: 0;
+  min-width: 0;
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.about-version {
+  font-weight: 600;
+}
+
 /* --- Resumen: dashboard de widgets (bento) --- */
 .dashboard {
   grid-template-columns: repeat(2, minmax(0, 1fr));

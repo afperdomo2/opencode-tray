@@ -22,9 +22,19 @@ else
   exit 1
 fi
 
+# Wails compila con -buildvcs=false, así que el commit y la fecha se inyectan
+# aquí. La versión no se inyecta: buildinfo.go embebe wails.json (fuente única).
+COMMIT="$(git rev-parse --short HEAD 2>/dev/null || true)"
+DIRTY="false"
+if [[ -n "$(git status --porcelain 2>/dev/null || true)" ]]; then
+  DIRTY="true"
+fi
+BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
 args=(-clean)
 if [[ -n "$WAILS_TAGS" ]]; then
   args+=(-tags "$WAILS_TAGS")
 fi
+args+=(-ldflags "-X main.buildCommit=${COMMIT} -X main.buildDate=${BUILD_DATE} -X main.buildDirty=${DIRTY}")
 
 wails build "${args[@]}" "$@"

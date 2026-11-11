@@ -636,3 +636,50 @@ Que la app tenga un icono reconocible en la bandeja, el ejecutable, el instalado
 - [ ] `go test ./...` valida tamaños y formato de los iconos.
 - [ ] El `.exe`, el instalador, el menú de aplicaciones y la bandeja muestran el icono nuevo (sin la “W”).
 - [ ] En Linux la bandeja usa el tile verde y el menú el tile oscuro.
+
+---
+
+# Iteración 14 — versión y build visibles
+
+> Traza a `shell`. Permite saber qué versión y qué compilación concreta está instalada, sin abrir una terminal.
+
+## Objective
+
+Que en **Ajustes → Acerca de** se vea la versión de la app y la compilación instalada (commit, fecha y plataforma), para distinguir builds entre sí al probar o reportar un problema.
+
+## Cambios
+
+1. **Fuente única de versión**: `Info.productVersion` de `wails.json` sigue alimentando los metadatos del `.exe`, el instalador y el `.deb`. El binario **embebe `wails.json`** (`//go:embed`) y lee ese valor en runtime, de modo que incluso un `wails build` directo (sin scripts) muestra la versión correcta. Fallback: `dev`.
+2. **Commit y fecha**: Wails compila con `-buildvcs=false`, así que Go no embebe el commit. `scripts/build-linux.sh` y `scripts/build-installer.ps1` calculan `git rev-parse --short HEAD`, `git status --porcelain` y la fecha UTC, y los inyectan con `-ldflags "-X main.buildCommit=… -X main.buildDate=… -X main.buildDirty=…"`. Sin git (tarball) se omiten sin fallar; la UI muestra “No disponible”.
+3. **Contrato con el frontend**: `App.GetAppVersion()` devuelve `{ version, commit, date, dirty, platform }`. `platform` es `runtime.GOOS/runtime.GOARCH`; `date` va en RFC3339 UTC y el frontend la formatea con `Intl.DateTimeFormat`.
+4. **UI**: componente `AcercaDe.vue` al final de Ajustes (debajo del grid, a ancho completo) con nombre, versión, compilación (commit corto + `*` si hay cambios sin commitear), fecha, plataforma y botón **Copiar información** (`ClipboardSetText`, confirmación de 1,5 s).
+5. **i18n**: textos en `es.json`/`en.json` bajo el namespace `about`.
+6. **Versión 1.4.0** en `wails.json` y `RELEASE.md`.
+
+## Decisiones
+
+- **Versión embebida, no inyectada**: `wails.json` es la única fuente; los scripts solo añaden commit/fecha. Evita que un build directo muestre `dev` o una versión distinta a los metadatos del `.exe`.
+- **El parámetro `-Version` del instalador** se mantiene como etiqueta del instalador; la app siempre reporta `wails.json` y el script ya avisa si difieren.
+- **Commit corto + marca dirty**: es lo que distingue dos builds de la misma versión durante las pruebas.
+
+## Fuera de alcance
+
+- Auto-actualización o verificación de versiones nuevas.
+- Mostrar la versión en el tooltip del tray o en el menú contextual.
+- Firma de código y metadatos de versión en Linux (el `.deb` ya lleva `Version`).
+- Comando `--version` en la CLI.
+
+## Testing Strategy
+
+- **Go** (`buildinfo_test.go`): parseo de `Info.productVersion`, fallback `dev`, commit corto, marca dirty y plataforma.
+- **Vitest** (`acerca-de.spec.ts`): render de versión/commit/fecha/plataforma, marca dirty, copiar con éxito y error, ausencia de fecha.
+- **Ajustes** (`ajustes.spec.ts`): la tarjeta aparece al final y no altera el grid de ajustes.
+- **Build**: `go test ./...`, `pnpm test`, `pnpm build`, `./scripts/build-linux.sh` y `./scripts/build-deb.sh`.
+
+## Success Criteria
+
+- [ ] Ajustes muestra `v1.4.0` al final, incluso con `wails build` directo.
+- [ ] Con `./scripts/build-linux.sh` se ven commit y fecha; al modificar un archivo aparece la marca de cambios sin commitear.
+- [ ] El botón copiar produce un texto con versión, compilación y plataforma.
+- [ ] `go test ./...` y `pnpm test` en verde.
+- [ ] El `.deb` y el instalador se generan con 1.4.0.

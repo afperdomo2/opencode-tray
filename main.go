@@ -18,8 +18,10 @@ var assets embed.FS
 
 // Iconos de la bandeja: ICO en Windows y PNG en el resto (Linux/macOS), porque
 // `energye/systray` decodifica la imagen con image.Decode, que no soporta ICO.
+// En Windows se usa un ICO propio de la bandeja (tile verde); el ICO del .exe
+// sigue siendo build/windows/icon.ico, que consumen Wails e Inno Setup.
 //
-//go:embed build/windows/icon.ico
+//go:embed build/windows/tray.ico
 var trayIconICO []byte
 
 //go:embed build/linux/icon.png

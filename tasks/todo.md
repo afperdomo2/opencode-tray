@@ -722,3 +722,39 @@
   - Verify: `go test ./...`, `pnpm test`, `pnpm build`, `./scripts/build-deb.sh`.
   - Files: `README.md`, `AGENTS.md`, `RELEASE.md`, `specs/SPEC-shell.md`, `tasks/plan.md`, `tasks/todo.md`, `wails.json`.
 
+
+---
+
+## Fase 22 — identidad visual e iconos
+
+> Spec: `SPEC-shell.md` (Iteración 13).
+
+- [x] **Task: Fuentes SVG del icono**
+  - **Hecho:** `brand/icon.svg` (tile `#1E293B`, borde sutil y glifo `>_` verde) y `brand/mark.svg` (glifo con `currentColor`) como fuente única.
+  - Acceptance: los SVG renderizan el mismo glifo y no hay PNG/ICO editados a mano.
+  - Verify: abrir ambos SVG en el navegador y comparar geometría.
+  - Files: `brand/icon.svg`, `brand/mark.svg`.
+
+- [x] **Task: Script de generación de iconos**
+  - **Hecho:** `scripts/generate-icons.sh` rasteriza con Chrome headless (supersampling 4× ≤64 px) y ensambla ICO multi-tamaño con Pillow (BMP 32-bit para chicos, PNG para 128/256); idempotente y con verificación de lectura.
+  - Acceptance: una corrida regenera los cinco assets y dos corridas dan el mismo `sha256`.
+  - Verify: `./scripts/generate-icons.sh` dos veces + comparación de hashes; Pillow lee ambos ICO.
+  - Files: `scripts/generate-icons.sh`.
+
+- [x] **Task: Assets por plataforma**
+  - **Hecho:** `build/appicon.png` (1024), `build/windows/icon.ico` (app/.exe), `build/windows/tray.ico` (bandeja), `build/linux/icon.png` (64, tray embebido) y `build/linux/icon-256.png` (menú/.deb). `main.go` embebe `tray.ico` en Windows.
+  - Acceptance: el `.exe`/instalador y el menú muestran el tile oscuro; la bandeja usa el tile verde.
+  - Verify: revisar los PNG/ICO generados y arrancar en Linux; en Windows, `wails build` y limpiar la caché de iconos si persiste la “W”.
+  - Files: `build/appicon.png`, `build/windows/icon.ico`, `build/windows/tray.ico`, `build/linux/icon.png`, `build/linux/icon-256.png`, `main.go`.
+
+- [x] **Task: Test de assets**
+  - **Hecho:** `icon_test.go` valida PNG embebido 64×64, ICO de app/bandeja con 16/24/32/48/64/128/256 y tamaños de `appicon.png` e `icon-256.png`.
+  - Acceptance: los assets rotos o con tamaños faltantes hacen fallar `go test ./...`.
+  - Verify: `go test ./...`.
+  - Files: `icon_test.go`.
+
+- [x] **Task: Documentar**
+  - **Hecho:** README (comando, estructura y tabla de assets), `AGENTS.md` (estructura/gotcha), `SPEC-shell.md` (Iteración 13 + objective acotada), `tasks/plan.md` y `tasks/todo.md`.
+  - Acceptance: documentación coherente y build en verde.
+  - Verify: `go test ./...`, `./scripts/build-linux.sh` y `./scripts/build-deb.sh`.
+  - Files: `README.md`, `AGENTS.md`, `specs/SPEC-shell.md`, `tasks/plan.md`, `tasks/todo.md`.

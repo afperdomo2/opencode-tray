@@ -54,6 +54,7 @@ export PATH="$HOME/go/bin:$PATH"        # queda en ~/go/bin
 | **Instalar** como app en Ubuntu (`.deb`) | `./scripts/build-deb.sh` y luego `sudo apt install ./dist/*.deb` |
 | Compilar el **`.exe`** en Windows | `wails build -clean -webview2 download` |
 | Correr solo los tests | `go test ./...` y `cd frontend && pnpm test` |
+| **Regenerar los iconos** (si cambiás `brand/`) | `./scripts/generate-icons.sh` (requiere Chrome/Chromium + Pillow) |
 | Desarrollo con hot reload | `wails dev` (lee las [limitaciones](#limitaciones)) |
 
 ### 🐧 Ubuntu / Linux
@@ -176,9 +177,33 @@ cd frontend && pnpm build   # type-check (vue-tsc) + build del frontend
 | `internal/configviewer` | MCP / skills / agents y JSON de configuración |
 | `internal/notifications` | Lógica de alertas (envío deshabilitado) |
 | `frontend/` | UI Vue 3 (`components/` por sección, `lib/` caché y ajustes, i18n es/en) |
+| `brand/` | Fuentes SVG de los iconos (`icon.svg` tile de app, `mark.svg` glifo) |
 | `build/` | Iconos y recursos por plataforma (`build/bin` es gitignored) |
-| `scripts/` | `build-linux.sh`, `build-deb.sh`, `build-installer.ps1` (Windows) |
+| `scripts/` | `build-linux.sh`, `build-deb.sh`, `build-installer.ps1` (Windows), `generate-icons.sh` |
 | `internal/cli` | Resolución del CLI de OpenCode (PATH, `~/.opencode/bin`, etc.) |
+
+### Iconos
+
+La fuente única es `brand/`:
+
+- `brand/icon.svg` → tile de app (`#1E293B` + glifo `>_` verde).
+- `brand/mark.svg` → solo el glifo, con `currentColor` (bandeja).
+
+El símbolo es un **prompt de terminal** (`>_`): tile oscuro para la app y el `.exe`, y tile verde sólido con glifo oscuro para la bandeja (se distingue en barras claras y oscuras).
+
+`./scripts/generate-icons.sh` rasteriza con Chrome headless y ensambla el ICO con Pillow. Los archivos generados **se commitean** y no se editan a mano:
+
+| Archivo | Tamaño | Uso |
+|---|---|---|
+| `build/appicon.png` | 1024 | máster de Wails |
+| `build/windows/icon.ico` | 16–256 | `.exe` e instalador (tile oscuro) |
+| `build/windows/tray.ico` | 16–256 | bandeja de Windows (tile verde sólido) |
+| `build/linux/icon.png` | 64 | bandeja en Linux/macOS (PNG embebido) |
+| `build/linux/icon-256.png` | 256 | menú de aplicaciones y `.deb` |
+
+Si cambiás un SVG, corré el script **antes** de compilar: `build/linux/icon.png` y `build/windows/tray.ico` se embeben en el binario. `go test ./...` valida tamaños y formato de los iconos.
+
+En Windows, Explorer puede conservar el icono viejo en caché. Si después de recompilar sigue apareciendo la “W”, ejecutá `ie4uinit.exe -show` o reinstalá la app.
 
 ---
 
@@ -281,6 +306,7 @@ Sin certificado, Windows SmartScreen puede mostrar una advertencia. Si tienes ce
 
 - [ ] `go test ./...`, `pnpm test` y `pnpm build` en verde.
 - [ ] `Info.productVersion` en `wails.json` actualizado y `RELEASE.md` sincronizado.
+- [ ] `./scripts/generate-icons.sh` ejecutado si cambió `brand/` (y assets commiteados).
 - [ ] `wails build -clean -webview2 download` genera el portable.
 - [ ] `scripts/build-installer.ps1` genera el instalador.
 - [ ] Probar en una VM Windows limpia, sin Go/Wails instalados.
@@ -344,7 +370,7 @@ sudo apt remove opencode-tray
 
 ### Diferencias respecto a Windows
 
-- **Icono de bandeja**: se embebe `build/linux/icon.png` (64 px) porque la bandeja decodifica PNG/JPEG y no ICO. Windows sigue usando `build/windows/icon.ico`.
+- **Icono de bandeja**: se embebe `build/linux/icon.png` (64 px, tile verde) porque la bandeja decodifica PNG/JPEG y no ICO. Windows usa su propio `build/windows/tray.ico` (tile verde multi-tamaño); el `.exe` y el instalador siguen usando `build/windows/icon.ico` (tile oscuro).
 - **Panel**: aparece **centrado** en el monitor principal y se puede **arrastrar** desde la franja superior (en Windows va anclado al icono del tray y no se mueve). Se centra solo la primera vez: conserva la posición que elijas. Bajo Wayland el compositor decide la posición inicial.
 - **Arranque oculto**: Wails ignora `StartHidden` en Linux; la app oculta la ventana en `startup` para arrancar solo con el icono.
 - **Clic en el icono**: en GNOME/AppIndicator el clic abre el menú (el escritorio nunca emite `Activate`), así que el panel se abre con **Mostrar panel**, la primera entrada del menú. En KDE/XFCE el clic izquierdo sí abre el panel.

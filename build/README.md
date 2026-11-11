@@ -1,5 +1,9 @@
 # Build Directory
 
+> **OpenCode Tray:** los iconos no se editan a mano. La fuente única está en
+> `../brand/` (`icon.svg` + `mark.svg`) y se regeneran con
+> `../scripts/generate-icons.sh`. Ver README → "Iconos".
+
 The build directory is used to house all the build files and assets for your application. 
 
 The structure is:

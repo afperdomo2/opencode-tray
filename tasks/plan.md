@@ -51,6 +51,7 @@ shell
 | 19 | `shell` | **Linux/Ubuntu**: icono PNG por SO, auto-inicio XDG, posición del panel en la esquina inferior derecha, toolchain `webkit2_41` y documentación de limitaciones |
 | 20 | `shell` | **instalación en Ubuntu**: paquete `.deb` con icono en el menú, instancia única (flock + socket `show`), `--show-panel` y resolución automática del CLI de OpenCode |
 | 21 | `shell` + `ui-ux` | **pulido en Ubuntu**: control segmentado (sin `<select>` nativo), consumo en el menú del tray, panel centrado y arrastrable |
+| 22 | `shell` | **identidad visual**: iconos propios desde `brand/` (SVG), script Chrome+Pillow, `tray.ico` de Windows, icono de bandeja Linux y tests de assets |
 
 Las fases 3a/3b/3c se pueden hacer **en paralelo** (independientes entre sí).
 
@@ -91,6 +92,7 @@ Cada fase termina con su checkpoint antes de pasar a la siguiente:
 - **Fase 19**: `go test ./...` y `pnpm test` pasan en Linux; `wails build -tags webkit2_41` produce un binario que arranca en Ubuntu; el icono del tray se dibuja; el toggle de auto-inicio crea/borra `~/.config/autostart/opencode-tray.desktop`; en Windows no cambia nada.
 - **Fase 21**: cambiar el intervalo no oculta el panel; el menú muestra el consumo como primera fila; el panel abre centrado y se puede arrastrar conservando la posición; `go test ./...`, `pnpm test`, `pnpm build` y `./scripts/build-deb.sh` en verde.
 - **Fase 20**: `./scripts/build-deb.sh` genera `dist/opencode-tray_<versión>_amd64.deb`; `dpkg-deb -c` muestra `/usr/bin/opencode-tray`, el `.desktop` y el icono; lanzada desde el menú abre el panel; una segunda ejecución sale en <50 ms sin duplicar el tray; el CLI se resuelve sin estar en el `PATH`; `apt remove` conserva los ajustes; tests y build en verde.
+- **Fase 22**: `./scripts/generate-icons.sh` regenera appicon/ICO/PNG de forma idempotente; la bandeja de Linux y Windows usa el tile verde; el `.exe`/instalador y el menú usan el tile oscuro; `icon_test.go` valida tamaños y formato; README/AGENTS/spec sincronizados; `go test ./...` y `./scripts/build-linux.sh` en verde.
 
 ## 6. Estrategia de testing (desde el inicio)
 

@@ -9,7 +9,7 @@
 **Usuario**: un desarrollador que usa OpenCode a diario y quiere controlar su servicio, acceso web y consumo desde la bandeja, sin abrir la terminal.
 
 **Qué hace `shell`:**
-1. Icono en la bandeja del sistema (refleja estado general: servicio corriendo/detenido, alerta de consumo).
+1. Icono en la bandeja del sistema. Hoy es **estático**; la variación por estado (servicio corriendo/detenido, alerta de consumo) queda como fase futura (ver Iteración 13).
 2. Al hacer clic izquierdo, abre un **panel popover compacto** anclado al tray (se cierra al hacer clic fuera o con Escape).
 3. **Una sola instancia**: si se lanza dos veces, se enfoca la existente.
 4. **Cerrar = minimizar al tray** (el proceso no sale; salir solo desde el menú del tray).
@@ -53,6 +53,9 @@ go test ./...
 # Tests frontend
 cd frontend && pnpm test          # vitest run
 cd frontend && pnpm test:watch
+
+# Iconos (solo si cambia brand/)
+./scripts/generate-icons.sh       # Chrome/Chromium + Pillow
 ```
 
 ## Project Structure
@@ -75,6 +78,10 @@ opencode-tray/
 ├── design-system/
 │   └── opencode-tray/
 │       └── MASTER.md          # sistema de diseño (ui-ux-pro-max)
+├── brand/
+│   ├── icon.svg               # tile de app (fuente única)
+│   └── mark.svg               # glifo del prompt (bandeja)
+├── build/                     # iconos generados por plataforma (se commitean)
 ├── go.mod / go.sum
 ├── main.go                    # entry point Wails
 ├── app.go                     # setup de la ventana + tray + wiring de módulos
@@ -440,7 +447,7 @@ Que OpenCode Tray se pueda compilar y ejecutar en Linux (Ubuntu 24.04+ con GNOME
 |---|---|---|
 | Compilación | `wails build` | `wails build -tags webkit2_41` (Ubuntu 26.04 solo trae WebKitGTK 4.1) |
 | Toolchain | MSVC/WebView2 | `gcc` + `pkg-config` + `libgtk-3-dev` + `libwebkit2gtk-4.1-dev` |
-| Icono de bandeja | `build/windows/icon.ico` | `build/linux/icon.png` (64 px; `image.Decode` no lee ICO) |
+| Icono de bandeja | `build/windows/tray.ico` | `build/linux/icon.png` (64 px; `image.Decode` no lee ICO) |
 | Bandera de bandeja | `StatusNotifierItem` vía DBus (GNOME AppIndicator) | ídem |
 | Auto-inicio | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` | `~/.config/autostart/opencode-tray.desktop` (XDG) |
 | Anclaje del panel | Win32: posición junto al icono, taskbar, DPI y multi-monitor | mejor esfuerzo: esquina inferior derecha del monitor principal |
@@ -451,7 +458,7 @@ Que OpenCode Tray se pueda compilar y ejecutar en Linux (Ubuntu 24.04+ con GNOME
 
 ## Cambios
 
-1. **Icono por SO** (`main.go`): se embeben `build/windows/icon.ico` y `build/linux/icon.png`; `trayIcon()` elige según `runtime.GOOS`.
+1. **Icono por SO** (`main.go`): se embeben `build/windows/tray.ico` (tile verde) y `build/linux/icon.png`; `trayIcon()` elige según `runtime.GOOS`. El `.exe` y el instalador usan `build/windows/icon.ico` (tile oscuro).
 2. **Auto-inicio XDG** (`internal/shell/autostart_xdg.go`): implementa `runKey` sobre `~/.config/autostart` escribiendo una entrada `.desktop` con `Exec=<ruta del ejecutable>`. El contrato de `AutoStart` (`SetEnabled` / `Enabled`) no cambia.
 3. **Posición del panel** (`placement_windows.go`, `placement_other.go`): el backend de ventana de `app.go` delega en `positionFlyout`, que en Windows usa Win32 y en el resto usa `ScreenGetAll` + `WindowSetPosition` con `shell.CornerPosition` (geometría pura y testeada).
 4. **Arranque oculto**: Wails en Linux ignora `StartHidden` (llama a `Hide` y después a `gtk_widget_show_all`), así que `startup` oculta la ventana explícitamente en no-Windows para que la app nazca solo con el icono de bandeja.
@@ -573,3 +580,59 @@ Que la app se sienta usable a diario en Ubuntu/GNOME, donde el escritorio impone
 - [ ] El menú muestra el consumo como primera fila (solo lectura) y se actualiza.
 - [ ] El panel aparece centrado y se puede arrastrar; reabrirlo conserva la posición.
 - [ ] En Windows no cambia nada (sin franja, sin fila de consumo, tooltip nativo, panel anclado).
+
+---
+
+# Iteración 13 — identidad visual e iconos propios
+
+> Traza a `shell`. Sustituye el icono por defecto de Wails por una identidad propia, con fuentes SVG y generación reproducible.
+
+## Objective
+
+Que la app tenga un icono reconocible en la bandeja, el ejecutable, el instalador y el menú de aplicaciones, en lugar del placeholder “W” de Wails. La fuente de verdad son dos SVG versionados; los PNG/ICO se generan con un script manual y se commitean.
+
+## Cambios
+
+1. **Fuente única SVG** (`brand/`):
+   - `brand/icon.svg`: tile de app cuadrado de 512, radio 112, fondo `#1E293B`, borde interior `#94A3B8` al 28 % y glifo `>_` en `#22C55E`.
+   - `brand/mark.svg`: solo el glifo, con `currentColor` para reutilizarlo en verde u oscuro.
+2. **Generación reproducible** (`scripts/generate-icons.sh`):
+   - Rasteriza con Chrome/Chromium headless y normaliza/ensambla con Python 3 + Pillow.
+   - Genera `build/appicon.png` (1024), `build/windows/icon.ico` y `build/windows/tray.ico` (16/24/32/48/64/128/256), `build/linux/icon-256.png` (256) y `build/linux/icon.png` (64).
+   - Supersampling 4× para tamaños ≤ 64 px; ICO con BMP 32-bit para tamaños chicos y PNG para 128/256.
+   - Idempotente: los PNG se guardan sin metadatos y dos corridas producen los mismos bytes.
+3. **Uso por plataforma**:
+   - `.exe` e instalador: `build/windows/icon.ico` (tile oscuro). Inno Setup sigue con `SetupIconFile=..\icon.ico`.
+   - Bandeja de Windows: `build/windows/tray.ico` (tile verde sólido + glifo oscuro), embebido en `main.go`.
+   - Bandeja de Linux/macOS: `build/linux/icon.png` (64 px, tile verde), embebido en `main.go`.
+   - Menú de aplicaciones y `.deb`: `build/linux/icon-256.png`.
+4. **Test de assets** (`icon_test.go`): valida que el PNG embebido sea 64×64, que ambos ICO declaren los siete tamaños y que los PNG de app/menú tengan el tamaño esperado.
+5. **El icono sigue siendo estático.** La variación por estado (corriendo/detenido/alerta) no se implementa en esta iteración; la frase de la Objective original queda acotada a esa fase futura.
+
+## Decisiones de diseño
+
+- **Prompt `>_`**: comunica “terminal/CLI” sin copiar el logo pixelado de OpenCode; sobrevive a 16 px con trazo de 72/512 (≈2,25 px).
+- **Tile oscuro para la app** (`#1E293B`) y **tile verde para la bandeja** (`#22C55E`): el verde sólido se separa tanto de barras claras como oscuras; el tile oscuro conserva la identidad en el menú y el `.exe`.
+- Glifo oscuro (`#0F172A`) sobre verde: contraste ≈8:1; verde sobre tile oscuro: ≈7:1.
+
+## Fuera de alcance
+
+- Iconos por estado del servicio o alerta de consumo.
+- Favicon del frontend (el panel no es una pestaña del navegador).
+- Iconos para macOS (no hay build `darwin` en el repo).
+- Branding del instalador más allá del icono (`SetupIconFile`).
+
+## Testing Strategy
+
+- **Go**: `icon_test.go` (PNG embebido 64×64, ICO de bandeja y de app con 16/24/32/48/64/128/256, PNG de app/menú con su tamaño).
+- **Script**: dos corridas consecutivas y comparación de `sha256`; verificación con Pillow de que el ICO se puede leer.
+- **Manual**: revisión de la hoja de contacto a 16/24/32/64 px sobre fondo claro y oscuro; arranque en Linux y comprobación del icono real en la bandeja y el menú.
+- **Build**: `go test ./...`, `./scripts/build-linux.sh` y `./scripts/build-deb.sh`.
+
+## Success Criteria
+
+- [ ] `brand/icon.svg` y `brand/mark.svg` son la única fuente; no se editan PNG/ICO a mano.
+- [ ] `./scripts/generate-icons.sh` regenera los cinco assets y es idempotente.
+- [ ] `go test ./...` valida tamaños y formato de los iconos.
+- [ ] El `.exe`, el instalador, el menú de aplicaciones y la bandeja muestran el icono nuevo (sin la “W”).
+- [ ] En Linux la bandeja usa el tile verde y el menú el tile oscuro.

@@ -2,7 +2,7 @@ package webaccess
 
 import (
 	"fmt"
-	"strings"
+	"time"
 )
 
 // ApplyMode aplica un modo de acceso usando service-control.
@@ -36,20 +36,47 @@ func (s *Service) ApplyMode(m Mode) error {
 		if err := s.sc.Set("hostname", "127.0.0.1"); err != nil {
 			return err
 		}
-		if _, err := s.sc.RunRaw("pair", "--remote", "--yes"); err != nil {
+		// `service set remote true` es la vía oficial: crea el túnel y detiene
+		// el servicio. No usamos `pair` porque genera códigos de un solo uso
+		// que esta vista no muestra.
+		if err := s.sc.SetRemote("true"); err != nil {
 			return err
 		}
 	default:
 		return fmt.Errorf("modo inválido: %s", m)
 	}
-	return s.sc.Start()
+	if err := s.sc.Start(); err != nil {
+		return err
+	}
+	if m == ModeRemote {
+		s.waitForRemoteURL()
+	}
+	return nil
+}
+
+// waitForRemoteURL espera a que /api/info incluya la URL del túnel. El
+// servicio arranca antes de que OpenTunnel termine de engancharse; sin esta
+// espera el panel mostraría solo la URL local justo tras activar el remoto.
+func (s *Service) waitForRemoteURL() {
+	for attempt := 0; attempt < s.remoteWaitAttempts; attempt++ {
+		if info, err := s.sc.Info(); err == nil {
+			for _, raw := range info.URLs {
+				if classify(raw) == KindRemote {
+					return
+				}
+			}
+		}
+		if attempt+1 < s.remoteWaitAttempts {
+			time.Sleep(s.remoteWaitInterval)
+		}
+	}
 }
 
 // disableRemote apaga OpenTunnel si estaba encendido. Es idempotente.
 func (s *Service) disableRemote() error {
 	remote, err := s.sc.Get("remote")
-	if err != nil || !strings.EqualFold(strings.TrimSpace(remote), "true") {
+	if err != nil || !remoteEnabled(remote) {
 		return nil
 	}
-	return s.sc.Set("remote", "false")
+	return s.sc.SetRemote("false")
 }

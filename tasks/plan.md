@@ -53,6 +53,8 @@ shell
 | 21 | `shell` + `ui-ux` | **pulido en Ubuntu**: control segmentado (sin `<select>` nativo), consumo en el menú del tray, panel centrado y arrastrable |
 | 22 | `shell` | **identidad visual**: iconos propios desde `brand/` (SVG), script Chrome+Pillow, `tray.ico` de Windows, icono de bandeja Linux y tests de assets |
 | 23 | `shell` | **versión y build visibles**: `wails.json` como fuente única embebida, commit/fecha por `-ldflags` en los scripts, `GetAppVersion()` y tarjeta **Acerca de** con copiar en Ajustes |
+| 24 | `shell` + `ui-ux` | **cierre explícito con botón X**: sin cierre por `blur`/clic fuera, cabecera compacta con título y X (ocultar al tray) y arrastre desde la cabecera en Linux |
+| 25 | `web-access` + `service-control` | **compatibilidad del remoto**: `remote` como objeto (`{route}`) en OpenCode 2.x, `Snapshot` normalizado, `SetRemote` con timeout largo, espera de la URL del túnel y modo remoto correcto en la UI |
 
 Las fases 3a/3b/3c se pueden hacer **en paralelo** (independientes entre sí).
 
@@ -94,6 +96,9 @@ Cada fase termina con su checkpoint antes de pasar a la siguiente:
 - **Fase 21**: cambiar el intervalo no oculta el panel; el menú muestra el consumo como primera fila; el panel abre centrado y se puede arrastrar conservando la posición; `go test ./...`, `pnpm test`, `pnpm build` y `./scripts/build-deb.sh` en verde.
 - **Fase 20**: `./scripts/build-deb.sh` genera `dist/opencode-tray_<versión>_amd64.deb`; `dpkg-deb -c` muestra `/usr/bin/opencode-tray`, el `.desktop` y el icono; lanzada desde el menú abre el panel; una segunda ejecución sale en <50 ms sin duplicar el tray; el CLI se resuelve sin estar en el `PATH`; `apt remove` conserva los ajustes; tests y build en verde.
 - **Fase 22**: `./scripts/generate-icons.sh` regenera appicon/ICO/PNG de forma idempotente; la bandeja de Linux y Windows usa el tile verde; el `.exe`/instalador y el menú usan el tile oscuro; `icon_test.go` valida tamaños y formato; README/AGENTS/spec sincronizados; `go test ./...` y `./scripts/build-linux.sh` en verde.
+- **Fase 23**: Ajustes muestra la versión correcta incluso con `wails build` directo; con los scripts se ven commit, fecha y marca dirty; copiar produce el texto completo; `go test ./...`, `pnpm test`, `pnpm build` y `./scripts/build-linux.sh` en verde.
+- **Fase 24**: hacer clic fuera no oculta el panel; la cabecera muestra título y X accesible que oculta al tray; `Escape` y el clic en el tray siguen ocultando; en Linux el arrastre funciona desde la cabecera y la X no arrastra; `go test ./...` y `pnpm test` en verde.
+- **Fase 25**: con OpenCode 2.x `service get` devuelve `remote` como objeto; el tray muestra modo Remoto, la URL `*.opentunnel.xyz` y el aviso de exposición; activar remoto usa `service set remote true` con timeout largo; local/red sigue apagando el túnel; `go test ./...` y `pnpm test` en verde.
 
 ## 6. Estrategia de testing (desde el inicio)
 

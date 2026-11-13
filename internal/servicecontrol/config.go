@@ -39,6 +39,17 @@ func (s *Service) Snapshot() (map[string]string, error) {
 			out[key] = strconv.FormatBool(v)
 		case float64:
 			out[key] = strconv.FormatFloat(v, 'f', -1, 64)
+		case map[string]any:
+			// OpenCode 2.x representa `remote` como objeto {route} (o {} cuando
+			// el CLI redacta la ruta). Su presencia significa túnel activo; no
+			// copiamos la ruta porque es tan sensible como la contraseña.
+			if key == "remote" {
+				out[key] = "true"
+				continue
+			}
+			if encoded, err := json.Marshal(v); err == nil {
+				out[key] = string(encoded)
+			}
 		}
 	}
 	return out, nil
@@ -50,6 +61,20 @@ func (s *Service) Set(key, value string) error {
 	_, stderr, err := s.run("service", "set", key, value)
 	if err != nil {
 		return fmt.Errorf("service set %s: %w (%s)", key, err, trim(stderr))
+	}
+	return nil
+}
+
+// SetRemote activa o desactiva OpenTunnel. Encender puede tardar hasta un
+// minuto en crear el túnel, por eso usa un timeout mayor que el resto de
+// operaciones del CLI.
+func (s *Service) SetRemote(value string) error {
+	if value != "true" && value != "false" {
+		return fmt.Errorf("valor remoto inválido: %s", value)
+	}
+	_, stderr, err := s.slowRunner.Run([]string{"service", "set", "remote", value})
+	if err != nil {
+		return fmt.Errorf("service set remote %s: %w (%s)", value, err, trim(stderr))
 	}
 	return nil
 }

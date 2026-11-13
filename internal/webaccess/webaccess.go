@@ -1,6 +1,10 @@
 package webaccess
 
-import "opencode-tray/internal/servicecontrol"
+import (
+	"time"
+
+	"opencode-tray/internal/servicecontrol"
+)
 
 // Mode es un modo de acceso al servidor web de OpenCode.
 type Mode string
@@ -36,9 +40,9 @@ type State struct {
 // serviceBackend es el contrato que web-access necesita de service-control.
 type serviceBackend interface {
 	Set(key, value string) error
+	SetRemote(value string) error
 	Get(key string) (string, error)
 	Snapshot() (map[string]string, error)
-	RunRaw(args ...string) (string, error)
 	Start() error
 	Status() (servicecontrol.Status, error)
 	Info() (servicecontrol.ServerInfo, error)
@@ -47,9 +51,17 @@ type serviceBackend interface {
 // Service gestiona modos de acceso y credenciales del servidor de OpenCode.
 type Service struct {
 	sc serviceBackend
+
+	// Espera acotada a que OpenTunnel publique su URL en /api/info.
+	remoteWaitAttempts int
+	remoteWaitInterval time.Duration
 }
 
 // New crea un Service sobre un service-control (inyectable para tests).
 func New(sc serviceBackend) *Service {
-	return &Service{sc: sc}
+	return &Service{
+		sc:                 sc,
+		remoteWaitAttempts: 10,
+		remoteWaitInterval: 500 * time.Millisecond,
+	}
 }

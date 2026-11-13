@@ -10,7 +10,7 @@
 
 **Qué hace `shell`:**
 1. Icono en la bandeja del sistema. Hoy es **estático**; la variación por estado (servicio corriendo/detenido, alerta de consumo) queda como fase futura (ver Iteración 13).
-2. Al hacer clic izquierdo, abre un **panel popover compacto** anclado al tray (se cierra al hacer clic fuera o con Escape).
+2. Al hacer clic izquierdo, abre un **panel popover compacto** anclado al tray. Permanece abierto al hacer clic fuera; se oculta con la **X** de su cabecera, con `Escape` o con un segundo clic en el icono.
 3. **Una sola instancia**: si se lanza dos veces, se enfoca la existente.
 4. **Cerrar = minimizar al tray** (el proceso no sale; salir solo desde el menú del tray).
 5. **Persistencia de ajustes** en un archivo JSON local (no en la config de OpenCode).
@@ -683,3 +683,55 @@ Que en **Ajustes → Acerca de** se vea la versión de la app y la compilación 
 - [ ] El botón copiar produce un texto con versión, compilación y plataforma.
 - [ ] `go test ./...` y `pnpm test` en verde.
 - [ ] El `.deb` y el instalador se generan con 1.4.0.
+
+---
+
+# Iteración 15 — cierre explícito con cabecera y botón X
+
+> Traza a `shell` + `ui-ux`. Deja sin efecto el cierre por pérdida de foco/clic fuera de las Iteraciones 5 y 6.
+
+## Objective
+
+Que el panel se comporte como una ventana de escritorio normal: al abrir otra aplicación o hacer clic fuera **no se cierra**. El cierre pasa a ser una acción explícita del usuario mediante un botón **X** visible en una cabecera compacta.
+
+## Cambios
+
+1. **Sin cierre automático por foco.**
+   - Se elimina el listener `window.blur` del frontend y el binding `WindowBlurred`.
+   - Se eliminan del controlador `HideFromBlur`, `hideIfUnfocused`, la guarda de blur (`blurGuard`, `showBlurGuard`) y la detección de foreground (`IsForeground`/`FlyoutForeground`).
+   - `ToggleAt` vuelve a ser un toggle puro: si está visible oculta, si está oculto muestra de inmediato (sin guarda de blur).
+
+2. **Cabecera compacta con X.**
+   - Nueva `<header class="app-header">` antes de `<main>` con el título (`app.title`) a la izquierda y un botón de cerrar a la derecha.
+   - El botón usa el icono `x`, `aria-label`/`title` desde `common.close` y un target de al menos 28 px.
+   - La X llama a `HideWindow`: **oculta al tray**, no termina el proceso (salir sigue en el menú del tray).
+   - En Linux la cabecera es la zona de arrastre (`--wails-draggable: drag`); la X declara `no-drag` para que el clic no mueva la ventana. En Windows se mantiene el anclaje al icono y no hay arrastre.
+   - Se elimina la antigua franja `.drag-strip`/`.drag-grip`.
+
+3. **Atajos que se conservan.**
+   - `Escape` sigue ocultando el panel; los modales siguen deteniendo la propagación.
+   - El clic izquierdo en el icono del tray sigue alternando abrir/ocultar.
+   - `Alt+F4` sigue ocultando al tray vía `HideWindowOnClose`.
+
+4. **Orden de capas.** La ventana continúa `AlwaysOnTop`, sin entrada en la barra de tareas ni en Alt+Tab: al no cerrarse al perder el foco, debe seguir accesible por encima del resto.
+
+## Fuera de alcance
+
+- Barra de título nativa o botones de minimizar/maximizar.
+- Comportamiento de z-order normal (el panel deja de ser topmost).
+- Cerrar el proceso desde la X.
+
+## Testing Strategy
+
+- **Go**: el controlador ya no tiene estado de blur; test de que `Hide` + `ToggleAt` vuelve a mostrar de inmediato; `Toggle`, `ShowAt`, `Hide` y `SetHeight` siguen cubiertos.
+- **Vitest**: la estructura es `header`, `main`, `nav`; la X y `Escape` llaman a `HideWindow`; un evento `blur` no oculta; la cabecera solo es arrastrable fuera de Windows.
+- **Manual**: abrir el panel, cambiar a otra ventana y comprobar que sigue abierto; cerrar con X, reabrir desde el tray, `Escape`, arrastre desde la cabecera en Linux y `Escape` dentro de un modal.
+- **Build**: `go test ./...`, `pnpm test`, `pnpm build`, `./scripts/build-linux.sh` y `wails build`.
+
+## Success Criteria
+
+- [ ] Hacer clic fuera del panel no lo cierra.
+- [ ] La cabecera muestra el título y una X accesible; la X oculta el panel al tray.
+- [ ] `Escape` y el clic en el tray siguen ocultando el panel.
+- [ ] En Linux la ventana se arrastra desde la cabecera y la X no la arrastra.
+- [ ] `go test ./...` y `pnpm test` en verde.

@@ -415,3 +415,47 @@ Eliminar los saltos visuales del panel, mostrar el estado y la URI del servicio 
 - [ ] No hay textos de “Actualizando…” en ninguna vista.
 - [ ] Los skeletons respetan la regla anterior.
 - [ ] `prefers-reduced-motion` desactiva el giro del icono.
+
+---
+
+# Iteración 9 — cabecera con botón de cerrar
+
+> Traza a `ui-ux` + `shell`. Sustituye el cierre por `blur` de la Iteración 5 y la ausencia de cabecera de la Iteración 2.
+
+## Objective
+
+Dar al panel una cabecera compacta con el título de la app y un botón **X**, para que el cierre sea una acción explícita y no ocurra al hacer clic fuera.
+
+## Cambios
+
+1. **Cabecera compacta.**
+   - `<header class="app-header">` de ~36 px, `flex: none`, borde inferior y título (`app.title`) a la izquierda.
+   - La X va a la derecha con `Icon name="x"`, `aria-label`/`title` de `common.close`, target ≥ 28 px, hover y `focus-visible`.
+   - La X llama a `HideWindow` (ocultar al tray).
+
+2. **Arrastre en Linux.**
+   - La cabecera sustituye a `.drag-strip`: en no-Windows recibe `--wails-draggable: drag` y cursor `grab`.
+   - La X declara `--wails-draggable: no-drag` para que pulsarla no arrastre la ventana.
+   - En Windows no se aplica la zona de arrastre.
+
+3. **Sin cierre por foco.**
+   - Se elimina el listener `window.blur`; el panel permanece abierto al cambiar de ventana.
+   - `Escape` sigue cerrando; `Modal.vue` sigue deteniendo la propagación.
+
+## Fuera de alcance
+
+- Barra de título nativa, minimizar/maximizar o doble clic en la cabecera.
+- Cambiar el footer de navegación o el alto fijo del panel.
+
+## Testing Strategy
+
+- **Vitest** (`app.spec.ts`): estructura `header` + `main` + `nav`; la X llama a `HideWindow`; `Escape` llama a `HideWindow`; `blur` no oculta; la clase de arrastre solo aparece fuera de Windows; el modal no propaga `Escape`.
+- **Manual**: comprobar la cabecera en Windows y Linux, el arrastre desde la cabecera y que la X responde sin mover la ventana.
+
+## Success Criteria
+
+- [ ] El panel muestra título y X en una cabecera compacta.
+- [ ] La X oculta el panel al tray y es accesible con teclado.
+- [ ] En Linux se puede arrastrar desde la cabecera sin que la X arrastre.
+- [ ] Hacer clic fuera no cierra el panel.
+- [ ] Tests Vitest en verde.

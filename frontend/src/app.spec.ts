@@ -10,7 +10,6 @@ const mocks = vi.hoisted(() => ({
   settings: vi.fn(),
   height: vi.fn(),
   hide: vi.fn(),
-  blurred: vi.fn(),
   platform: vi.fn(),
 }))
 
@@ -21,7 +20,6 @@ vi.mock('../wailsjs/go/main/App', async (importOriginal) => {
     GetSettings: mocks.settings,
     SetFlyoutHeight: mocks.height,
     HideWindow: mocks.hide,
-    WindowBlurred: mocks.blurred,
     Platform: mocks.platform,
   }
 })
@@ -44,7 +42,6 @@ describe('App (flyout)', () => {
     mocks.settings.mockResolvedValue({ language: 'es' })
     mocks.height.mockResolvedValue(undefined)
     mocks.hide.mockResolvedValue(undefined)
-    mocks.blurred.mockResolvedValue(undefined)
     mocks.platform.mockResolvedValue('windows')
   })
 
@@ -52,11 +49,12 @@ describe('App (flyout)', () => {
     vi.clearAllMocks()
   })
 
-  it('coloca la navegación después del contenido', async () => {
+  it('coloca la cabecera arriba y la navegación al final', async () => {
     const w = mountApp()
     await flushPromises()
     const children = Array.from(w.find('.app').element.children).map((el) => el.tagName.toLowerCase())
-    expect(children).toEqual(['main', 'nav'])
+    expect(children).toEqual(['header', 'main', 'nav'])
+    expect(w.find('.app-header h1').text()).toBe('OpenCode Tray')
     expect(w.findAll('.app-nav .nav-btn').length).toBe(4)
     w.unmount()
   })
@@ -72,35 +70,40 @@ describe('App (flyout)', () => {
     w.unmount()
   })
 
-  it('muestra la franja de arrastre solo fuera de Windows', async () => {
+  it('activa el arrastre desde la cabecera solo fuera de Windows', async () => {
     const win = mountApp()
     await flushPromises()
-    expect(win.find('.drag-strip').exists()).toBe(false)
-    expect(Array.from(win.find('.app').element.children).map((el) => el.tagName.toLowerCase())).toEqual([
-      'main',
-      'nav',
-    ])
+    expect(win.find('.app-header').exists()).toBe(true)
+    expect(win.find('.app-header').classes()).not.toContain('is-draggable')
     win.unmount()
 
     mocks.platform.mockResolvedValue('linux')
     const linux = mountApp()
     await flushPromises()
-    expect(linux.find('.drag-strip').exists()).toBe(true)
-    expect(linux.find('.drag-grip').exists()).toBe(true)
-    const children = Array.from(linux.find('.app').element.children).map((el) => el.tagName.toLowerCase())
-    expect(children).toEqual(['div', 'main', 'nav'])
+    expect(linux.find('.app-header').classes()).toContain('is-draggable')
+    expect(linux.find('.drag-strip').exists()).toBe(false)
     linux.unmount()
   })
 
-  it('oculta el panel con Escape y al perder el foco', async () => {
+  it('cierra con la X y con Escape', async () => {
     const w = mountApp()
     await flushPromises()
 
+    await w.find('.panel-close').trigger('click')
+    expect(mocks.hide).toHaveBeenCalledTimes(1)
+
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
-    expect(mocks.hide).toHaveBeenCalled()
+    expect(mocks.hide).toHaveBeenCalledTimes(2)
+    w.unmount()
+  })
+
+  it('no se oculta al perder el foco', async () => {
+    const w = mountApp()
+    await flushPromises()
 
     window.dispatchEvent(new Event('blur'))
-    expect(mocks.blurred).toHaveBeenCalled()
+    await flushPromises()
+    expect(mocks.hide).not.toHaveBeenCalled()
     w.unmount()
   })
 })

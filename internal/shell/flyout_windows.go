@@ -21,7 +21,6 @@ var (
 	procSetWindowLongW         = user32.NewProc("SetWindowLongW")
 	procSetForeground          = user32.NewProc("SetForegroundWindow")
 	procGetForeground          = user32.NewProc("GetForegroundWindow")
-	procGetAncestor            = user32.NewProc("GetAncestor")
 	procBringWindowToTop       = user32.NewProc("BringWindowToTop")
 	procShowWindow             = user32.NewProc("ShowWindow")
 	procSetFocus               = user32.NewProc("SetFocus")
@@ -33,7 +32,6 @@ var (
 
 const (
 	monitorDefaultToNearest = 2
-	gaRoot                  = 2
 
 	swpNoSize       = 0x0001
 	swpNoMove       = 0x0002
@@ -205,21 +203,4 @@ func FocusFlyout() {
 	for _, thread := range attached {
 		procAttachThreadInput.Call(current, thread, 0)
 	}
-}
-
-// FlyoutForeground indica si el flyout (o un hijo suyo) es la ventana activa.
-func FlyoutForeground() bool {
-	hwnd := findFlyoutWindow()
-	if hwnd == 0 {
-		return false
-	}
-	foreground, _, _ := procGetForeground.Call()
-	if foreground == 0 {
-		return false
-	}
-	root, _, _ := procGetAncestor.Call(foreground, gaRoot)
-	if root == 0 {
-		root = foreground
-	}
-	return root == hwnd
 }

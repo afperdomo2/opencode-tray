@@ -11,6 +11,3 @@ func PrepareFlyoutWindow() {}
 func PositionFlyout(anchor Point, fallbackWidth, fallbackHeight int) {}
 
 func FocusFlyout() {}
-
-// FlyoutForeground no aplica fuera de Windows.
-func FlyoutForeground() bool { return true }

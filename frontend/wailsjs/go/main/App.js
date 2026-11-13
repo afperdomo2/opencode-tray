@@ -125,7 +125,3 @@ export function WebAccessState() {
 export function WebAccessUsername() {
   return window['go']['main']['App']['WebAccessUsername']();
 }
-
-export function WindowBlurred() {
-  return window['go']['main']['App']['WindowBlurred']();
-}

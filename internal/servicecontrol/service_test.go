@@ -216,6 +216,77 @@ func TestSnapshotInvalidJSON(t *testing.T) {
 	}
 }
 
+func TestSnapshotParsesRemoteObject(t *testing.T) {
+	// OpenCode 2.x devuelve `remote` como objeto y redacta la ruta.
+	r := &mockRunner{responses: map[string]mockResult{
+		"service get": {stdout: `{"remote":{},"remoteAccepted":true,"hostname":"127.0.0.1"}`},
+	}}
+	s := NewWithRunner(r, nil)
+
+	cfg, err := s.Snapshot()
+	if err != nil {
+		t.Fatalf("Snapshot() error: %v", err)
+	}
+	if cfg["remote"] != "true" {
+		t.Errorf("remote = %q, want true", cfg["remote"])
+	}
+	if cfg["hostname"] != "127.0.0.1" {
+		t.Errorf("hostname = %q", cfg["hostname"])
+	}
+}
+
+func TestSnapshotRemoteObjectKeepsRouteOut(t *testing.T) {
+	// La ruta es secreta: no debe acabar en el mapa del snapshot.
+	r := &mockRunner{responses: map[string]mockResult{
+		"service get": {stdout: `{"remote":{"route":"abc123"},"hostname":"127.0.0.1"}`},
+	}}
+	s := NewWithRunner(r, nil)
+
+	cfg, err := s.Snapshot()
+	if err != nil {
+		t.Fatalf("Snapshot() error: %v", err)
+	}
+	if cfg["remote"] != "true" {
+		t.Errorf("remote = %q, want true", cfg["remote"])
+	}
+	for key, value := range cfg {
+		if strings.Contains(value, "abc123") {
+			t.Errorf("%s contiene la ruta secreta: %q", key, value)
+		}
+	}
+}
+
+func TestSetRemotePassesArgs(t *testing.T) {
+	r := &mockRunner{responses: map[string]mockResult{
+		"service set remote true":  {},
+		"service set remote false": {},
+	}}
+	s := NewWithRunner(r, nil)
+
+	if err := s.SetRemote("true"); err != nil {
+		t.Fatalf("SetRemote(true) error: %v", err)
+	}
+	if err := s.SetRemote("false"); err != nil {
+		t.Fatalf("SetRemote(false) error: %v", err)
+	}
+	if len(r.calls) != 2 {
+		t.Fatalf("calls = %v", r.calls)
+	}
+	if strings.Join(r.calls[0], " ") != "service set remote true" {
+		t.Errorf("calls[0] = %v", r.calls[0])
+	}
+	if strings.Join(r.calls[1], " ") != "service set remote false" {
+		t.Errorf("calls[1] = %v", r.calls[1])
+	}
+}
+
+func TestSetRemoteRejectsInvalidValue(t *testing.T) {
+	s := NewWithRunner(&mockRunner{}, nil)
+	if err := s.SetRemote("yes"); err == nil {
+		t.Error("SetRemote(yes) debería fallar")
+	}
+}
+
 func TestStartPassesArgs(t *testing.T) {
 	r := &mockRunner{responses: map[string]mockResult{
 		"service start": {},

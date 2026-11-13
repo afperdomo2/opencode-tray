@@ -60,7 +60,7 @@ func (s *Service) config() (map[string]string, error) {
 // modeFromConfig deduce el modo activo. "remote" manda sobre el bind: si el
 // túnel está activo, es el modo visible. Las claves ausentes son defaults.
 func modeFromConfig(cfg map[string]string) string {
-	if strings.EqualFold(strings.TrimSpace(cfg["remote"]), "true") {
+	if remoteEnabled(cfg["remote"]) {
 		return string(ModeRemote)
 	}
 	switch strings.TrimSpace(cfg["hostname"]) {
@@ -69,6 +69,14 @@ func modeFromConfig(cfg map[string]string) string {
 	default:
 		return string(ModeLocal)
 	}
+}
+
+// remoteEnabled indica si la configuración tiene OpenTunnel activo. Acepta el
+// booleano antiguo ("true"), el valor normalizado por Snapshot y el objeto
+// serializado ({...}) de OpenCode 2.x, por si el snapshot no lo normalizó.
+func remoteEnabled(raw string) bool {
+	v := strings.TrimSpace(raw)
+	return strings.EqualFold(v, "true") || strings.HasPrefix(v, "{")
 }
 
 // ComputeURLs devuelve las URLs de acceso con una sola lectura de estado.

@@ -28,7 +28,7 @@ opencode service set hostname 127.0.0.1   # local
 opencode service set hostname 0.0.0.0     # red
 opencode service set port <puerto>
 opencode service set password "<secreto>"
-opencode pair --remote --yes              # remoto (OpenTunnel)
+opencode service set remote true          # remoto (OpenTunnel); puede tardar ~1 min
 opencode service set remote false         # apagar remoto
 opencode service start                    # aplicar config (un set detiene el servicio)
 ```
@@ -193,6 +193,10 @@ func (s *Service) IsAccessURL(raw string) (bool, error)
 - [ ] Activar remoto requiere confirmación.
 - [ ] Tests y build en verde.
 
+> **Nota:** la Iteración 4 reemplaza `pair --remote --yes` por
+> `service set remote true` y corrige la lectura de `remote` como objeto en
+> OpenCode 2.x. Lo descrito aquí sobre `pair` queda como histórico.
+
 
 ---
 
@@ -223,3 +227,57 @@ Que volver a “Acceso web” no repita lecturas ni muestre skeleton, que el ref
 - [ ] Refrescar y cambiar modo/contraseña muestran skeleton desde el inicio.
 - [ ] `WebAccessState` = 1 status + 1 config; `/api/info` no se llama en local.
 - [ ] Tests Go/Vitest verdes.
+
+---
+
+# Iteración 4 — compatibilidad con OpenCode 2.x (`remote` como objeto)
+
+> Traza a `web-access` + `service-control`. Verificado contra OpenCode **v2.3.0** en Linux.
+
+## Hallazgos
+
+- OpenCode cambió la clave `remote` de `service.json`: antes era un booleano
+  (`true`/`false`); desde 2.0.29 es un objeto `{ "route": "<subdominio>" }`
+  cuando el túnel está activo. La clave se omite cuando está apagado.
+- `opencode service get remote` (clave suelta) sigue devolviendo `true`/`false`,
+  pero `opencode service get` (snapshot completo) devuelve `"remote": {}` y
+  **redacta la ruta** porque es tan sensible como la contraseña.
+- El tray descartaba los valores que no fueran string/bool/número, así que
+  `remote` desaparecía del snapshot y `modeFromConfig` siempre reportaba
+  `local`. Consecuencia: la UI volvía a Local aunque el túnel estuviera activo
+  y no mostraba ni la URL remota ni el aviso de exposición.
+- `service set remote true` crea el túnel y detiene el servicio; en frío puede
+  tardar más de 15 s (el timeout global del runner). Con el túnel ya creado,
+  `opencode pair --remote --yes` tarda ~2 s.
+- Tras `service start`, `/api/info` puede tardar 2–3 s en incluir la URL
+  `*.opentunnel.xyz`.
+
+## Contrato
+
+- `servicecontrol.Snapshot()` normaliza `remote` a `"true"` cuando la clave
+  aparece como objeto (o booleano `true` en versiones antiguas) y no copia la
+  ruta. La ausencia de la clave o `"false"` significa remoto apagado.
+- `webaccess.modeFromConfig` usa un helper `remoteEnabled` que acepta `"true"`
+  y objetos serializados (`{...}`), cubriendo también el fallback con
+  `Get("remote")` cuando el snapshot falla.
+- `servicecontrol.SetRemote(value)` ejecuta `service set remote <value>` con un
+  timeout largo (~2 min) solo para esta operación.
+- `ApplyMode(remote)`: fija `hostname 127.0.0.1`, ejecuta `SetRemote("true")`,
+  arranca el servicio y espera de forma acotada (≈5 s) a que `/api/info`
+  publique una URL remota.
+
+## Testing Strategy
+
+- Go: snapshot con `remote: {}` → `"true"`; snapshot con `remote: true`
+  (legacy); `SetRemote` forma los argumentos y rechaza valores inválidos;
+  `ApplyMode(remote)` usa `SetRemote` (no `pair`) y espera la URL remota;
+  detección de modo con `remote` ausente, booleano, objeto y fallback
+  `Get("remote")`.
+
+## Success Criteria
+
+- [ ] Activar remoto mantiene la UI en **Remoto** y muestra la URL del túnel.
+- [ ] Si el remoto se activa desde la app de escritorio, el tray lo detecta y
+      muestra el aviso de exposición.
+- [ ] Volver a local/red apaga el túnel.
+- [ ] Tests Go/Vitest y build en verde.

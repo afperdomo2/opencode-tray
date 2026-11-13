@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { HideWindow, Platform, WindowBlurred } from '../wailsjs/go/main/App'
+import { HideWindow, Platform } from '../wailsjs/go/main/App'
 import Icon from './components/Icon.vue'
 import Resumen from './components/Resumen.vue'
 import Servicio from './components/Servicio.vue'
@@ -13,8 +13,8 @@ const { t, locale } = useI18n()
 
 const active = ref('resumen')
 
-// En Linux/macOS el panel no está anclado al tray: se muestra una franja
-// superior para arrastrarlo (Wails mueve la ventana con --wails-draggable).
+// En Linux/macOS el panel no está anclado al tray: la cabecera se usa como
+// franja de arrastre (Wails mueve la ventana con --wails-draggable).
 const canDrag = ref(false)
 
 // Secciones (Servicio ya incluye la configuración; Resumen es el dashboard).
@@ -28,22 +28,22 @@ const sections = [
 // El alto lo fija el backend y no depende del contenido de cada pestaña.
 function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
-    void HideWindow().catch(() => {})
+    closePanel()
   }
 }
 
-function onBlur() {
-  void WindowBlurred().catch(() => {})
+// Cierre explícito: oculta el panel al tray sin terminar el proceso.
+function closePanel() {
+  void HideWindow().catch(() => {})
 }
 
 onMounted(async () => {
   window.addEventListener('keydown', onKeydown)
-  window.addEventListener('blur', onBlur)
 
   try {
     canDrag.value = (await Platform()) !== 'windows'
   } catch {
-    // Sin puente (tests o modo dev): se asume Windows y no se muestra la franja.
+    // Sin puente (tests o modo dev): se asume Windows y no se activa el arrastre.
     canDrag.value = false
   }
 
@@ -53,15 +53,23 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
-  window.removeEventListener('blur', onBlur)
 })
 </script>
 
 <template>
   <div class="app">
-    <div v-if="canDrag" class="drag-strip" aria-hidden="true">
-      <span class="drag-grip" />
-    </div>
+    <header class="app-header" :class="{ 'is-draggable': canDrag }">
+      <h1>{{ t('app.title') }}</h1>
+      <button
+        type="button"
+        class="panel-close"
+        :aria-label="t('common.close')"
+        :title="t('common.close')"
+        @click="closePanel"
+      >
+        <Icon name="x" :size="16" />
+      </button>
+    </header>
 
     <main class="app-content">
       <div class="app-content-inner">

@@ -207,8 +207,6 @@ func (w wailsWindow) Place(anchor shell.Point, width, height int) {
 
 func (w wailsWindow) Focus() { shell.FocusFlyout() }
 
-func (w wailsWindow) IsForeground() bool { return shell.FlyoutForeground() }
-
 // --- Ajustes y ventana ---
 
 // GetSettings devuelve los ajustes actuales sin secretos.
@@ -274,13 +272,6 @@ func (a *App) SetFlyoutHeight(height int) {
 func (a *App) HideWindow() {
 	if a.win != nil {
 		a.win.Hide()
-	}
-}
-
-// WindowBlurred oculta el panel al perder el foco, con guarda anti-carrera.
-func (a *App) WindowBlurred() {
-	if a.win != nil {
-		a.win.HideFromBlur()
 	}
 }
 

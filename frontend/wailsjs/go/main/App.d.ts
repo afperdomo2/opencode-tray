@@ -67,5 +67,3 @@ export function WebAccessOpenURL(arg1:string):Promise<void>;
 export function WebAccessState():Promise<webaccess.State>;
 
 export function WebAccessUsername():Promise<string>;
-
-export function WindowBlurred():Promise<void>;

@@ -15,16 +15,19 @@ type runner interface {
 
 // Service controla el servicio de fondo de OpenCode.
 type Service struct {
-	runner runner
-	kill   func(pid int) error
+	runner     runner
+	slowRunner runner // operaciones que pueden tardar (p. ej. crear el túnel remoto)
+	kill       func(pid int) error
 }
 
 // New crea un Service que invoca el CLI de OpenCode (se resuelve con
 // cli.Resolve para funcionar también desde el menú o el auto-inicio).
 func New() *Service {
+	bin := cli.Resolve()
 	return &Service{
-		runner: execRunner{bin: cli.Resolve(), timeout: 15 * time.Second},
-		kill:   killByPID,
+		runner:     execRunner{bin: bin, timeout: 15 * time.Second},
+		slowRunner: execRunner{bin: bin, timeout: 2 * time.Minute},
+		kill:       killByPID,
 	}
 }
 
@@ -33,7 +36,7 @@ func NewWithRunner(r runner, kill func(int) error) *Service {
 	if kill == nil {
 		kill = killByPID
 	}
-	return &Service{runner: r, kill: kill}
+	return &Service{runner: r, slowRunner: r, kill: kill}
 }
 
 // run ejecuta el CLI con los argumentos dados.

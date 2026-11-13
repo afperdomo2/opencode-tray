@@ -2,26 +2,21 @@ package shell
 
 import (
 	"testing"
-	"time"
 )
 
 type mockBackend struct {
-	shown      int
-	hidden     int
-	resizes    int
-	places     int
-	focus      int
-	width      int
-	height     int
-	anchor     Point
-	foreground bool
+	shown   int
+	hidden  int
+	resizes int
+	places  int
+	focus   int
+	width   int
+	height  int
+	anchor  Point
 }
 
 func (m *mockBackend) Show() { m.shown++ }
 func (m *mockBackend) Hide() { m.hidden++ }
-func (m *mockBackend) IsForeground() bool {
-	return m.foreground
-}
 func (m *mockBackend) Resize(width, height int) {
 	m.resizes++
 	m.width, m.height = width, height
@@ -32,39 +27,6 @@ func (m *mockBackend) Place(anchor Point, width, height int) {
 	m.width, m.height = width, height
 }
 func (m *mockBackend) Focus() { m.focus++ }
-
-type fakeTimer struct {
-	fn      func()
-	stopped bool
-}
-
-func (f *fakeTimer) Stop() bool {
-	if f.stopped {
-		return false
-	}
-	f.stopped = true
-	return true
-}
-
-type fakeTimers struct {
-	timers []*fakeTimer
-}
-
-func (s *fakeTimers) after(_ time.Duration, fn func()) stopTimer {
-	t := &fakeTimer{fn: fn}
-	s.timers = append(s.timers, t)
-	return t
-}
-
-func (s *fakeTimers) fire() {
-	for _, t := range s.timers {
-		if t.stopped {
-			continue
-		}
-		t.stopped = true
-		t.fn()
-	}
-}
 
 func TestWindowControllerStartsHidden(t *testing.T) {
 	b := &mockBackend{}
@@ -124,87 +86,21 @@ func TestWindowControllerShowAtAnchors(t *testing.T) {
 	}
 }
 
-func TestWindowControllerIgnoresTransientBlurAfterShow(t *testing.T) {
-	b := &mockBackend{foreground: true}
-	timers := &fakeTimers{}
-	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	c := newWindowControllerWithDeps(b, func() time.Time { return now }, timers.after)
-
-	c.ShowAt(Point{X: 100, Y: 200})
-	now = now.Add(50 * time.Millisecond)
-	c.HideFromBlur()
-	if !c.IsVisible() {
-		t.Fatal("el blur transitorio no debe ocultar de inmediato")
-	}
-
-	timers.fire()
-	if !c.IsVisible() || b.hidden != 0 {
-		t.Fatalf("si el flyout sigue en primer plano debe permanecer: visible=%v hidden=%d", c.IsVisible(), b.hidden)
-	}
-}
-
-func TestWindowControllerBlurAfterShowHidesWhenUnfocused(t *testing.T) {
+func TestWindowControllerToggleAtAfterHideShowsImmediately(t *testing.T) {
 	b := &mockBackend{}
-	timers := &fakeTimers{}
-	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	c := newWindowControllerWithDeps(b, func() time.Time { return now }, timers.after)
+	c := NewWindowController(b)
 	anchor := Point{X: 100, Y: 200}
 
 	c.ShowAt(anchor)
-	now = now.Add(50 * time.Millisecond)
-	c.HideFromBlur()
-	if !c.IsVisible() {
-		t.Fatal("debe esperar a la comprobación de foco")
-	}
-
-	timers.fire()
-	if c.IsVisible() || b.hidden != 1 {
-		t.Fatalf("blur real debe ocultar: visible=%v hidden=%d", c.IsVisible(), b.hidden)
-	}
-
-	// El clic del tray que causó el blur no debe reabrir el panel.
-	c.ToggleAt(anchor)
-	if c.IsVisible() || b.shown != 1 {
-		t.Fatalf("clic inmediato tras blur no debe reabrir: visible=%v shown=%d", c.IsVisible(), b.shown)
-	}
-
-	// Pasada la guarda, el siguiente clic sí abre.
-	now = now.Add(blurGuard + time.Millisecond)
+	c.Hide()
 	c.ToggleAt(anchor)
 	if !c.IsVisible() || b.shown != 2 {
-		t.Fatalf("clic tras la guarda debe abrir: visible=%v shown=%d", c.IsVisible(), b.shown)
+		t.Fatalf("ToggleAt tras cerrar debe mostrar de inmediato: visible=%v shown=%d", c.IsVisible(), b.shown)
 	}
-}
 
-func TestWindowControllerBlurOutsideGuardHides(t *testing.T) {
-	b := &mockBackend{foreground: true}
-	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	c := newWindowControllerWithClock(b, func() time.Time { return now })
-
-	c.ShowAt(Point{})
-	now = now.Add(showBlurGuard + time.Millisecond)
-	c.HideFromBlur()
-	if c.IsVisible() || b.hidden != 1 {
-		t.Fatalf("blur fuera de la guarda debe ocultar: visible=%v hidden=%d", c.IsVisible(), b.hidden)
-	}
-}
-
-func TestWindowControllerShowCancelsPendingBlur(t *testing.T) {
-	b := &mockBackend{}
-	timers := &fakeTimers{}
-	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	c := newWindowControllerWithDeps(b, func() time.Time { return now }, timers.after)
-
-	c.ShowAt(Point{})
-	now = now.Add(50 * time.Millisecond)
-	c.HideFromBlur()
-
-	now = now.Add(10 * time.Millisecond)
-	c.ShowAt(Point{})
-	timers.fire()
-
-	if !c.IsVisible() || b.hidden != 0 {
-		t.Fatalf("el timer obsoleto no debe ocultar: visible=%v hidden=%d", c.IsVisible(), b.hidden)
+	c.ToggleAt(anchor)
+	if c.IsVisible() || b.hidden != 2 {
+		t.Fatalf("ToggleAt con el panel visible debe ocultar: visible=%v hidden=%d", c.IsVisible(), b.hidden)
 	}
 }
 

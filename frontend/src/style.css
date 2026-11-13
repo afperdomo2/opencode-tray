@@ -210,27 +210,69 @@ h3 {
   font-size: 12px;
 }
 
-/* Franja de arrastre del panel (solo Linux): Wails mueve la ventana al
-   arrastrarla. En Windows el panel va anclado al icono del tray. */
-.drag-strip {
+/* Cabecera compacta del panel: título + botón de cerrar. En Linux también es
+   la zona de arrastre de la ventana (Wails usa --wails-draggable). */
+.app-header {
   flex: none;
   display: flex;
   align-items: center;
-  justify-content: center;
-  height: 22px;
-  cursor: grab;
-  --wails-draggable: drag;
+  gap: var(--space-sm);
+  height: 38px;
+  padding: 0 var(--space-sm) 0 var(--space-md);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  user-select: none;
 }
 
-.drag-strip:active {
+.app-header.is-draggable {
+  --wails-draggable: drag;
+  cursor: grab;
+}
+
+.app-header.is-draggable:active {
   cursor: grabbing;
 }
 
-.drag-grip {
-  width: 36px;
-  height: 3px;
-  border-radius: 999px;
-  background: var(--border);
+.app-header h1 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* Botón X: oculta el panel al tray. Fuera de la zona de arrastre para que el
+   clic no mueva la ventana en Linux. */
+.panel-close {
+  --wails-draggable: no-drag;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  margin-left: auto;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.panel-close:hover {
+  background: var(--color-muted);
+  color: var(--text);
+}
+
+.panel-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 /* Footer fijo del flyout: 4 pestañas, icono arriba y texto abajo. */

@@ -788,3 +788,57 @@
   - Acceptance: documentación coherente y builds en verde.
   - Verify: `go test ./...`, `pnpm test`, `pnpm build`, `./scripts/build-linux.sh`, `./scripts/build-deb.sh`.
   - Files: `wails.json`, `RELEASE.md`, `specs/SPEC-shell.md`, `specs/CAPABILITY-MAP.md`, `tasks/plan.md`, `tasks/todo.md`, `README.md`, `AGENTS.md`, `frontend/wailsjs/go/main/*`, `frontend/wailsjs/go/models.ts`.
+
+---
+
+## Fase 24 — cierre explícito con botón X
+
+> Specs: `SPEC-shell.md` (Iteración 15) y `SPEC-ui-ux.md` (Iteración 9). Backend `shell` + frontend; sin dependencias nuevas.
+
+- [x] **Task: Eliminar el cierre por pérdida de foco**
+  - **Hecho:** se quitan `HideFromBlur`, la guarda de blur y `WindowBlurred`; `ToggleAt` vuelve a ser un toggle puro.
+  - Acceptance: hacer clic fuera no oculta el panel; `ToggleAt` reabre de inmediato tras `Hide`.
+  - Verify: `go test ./...` (`window_test.go` sin tests de blur) y `pnpm test`.
+  - Files: `internal/shell/window.go`, `internal/shell/window_test.go`, `internal/shell/flyout_windows.go`, `internal/shell/flyout_other.go`, `app.go`, `frontend/src/App.vue`, `frontend/src/app.spec.ts`.
+
+- [x] **Task: Cabecera compacta con X**
+  - **Hecho:** `<header class="app-header">` con título y botón X accesible que llama a `HideWindow`; en Linux la cabecera es la zona de arrastre (`--wails-draggable: drag`) y la X declara `no-drag`; se elimina `.drag-strip`.
+  - Acceptance: la X oculta al tray; `Escape` sigue cerrando; en Linux se arrastra desde la cabecera y la X no arrastra.
+  - Verify: `app.spec.ts` (estructura, X, Escape, blur, clase de arrastre) y `pnpm build`.
+  - Files: `frontend/src/App.vue`, `frontend/src/style.css`, `frontend/src/app.spec.ts`, `frontend/src/i18n/{es,en}.json` (sin claves nuevas).
+
+- [x] **Task: Sincronizar documentación**
+  - **Hecho:** README, `SPEC-shell.md` (Iteración 15), `SPEC-ui-ux.md` (Iteración 9), `tasks/plan.md` (Fase 24) y este todo actualizados.
+  - Acceptance: documentación coherente con el nuevo cierre.
+  - Verify: revisión cruzada README ↔ specs ↔ tasks.
+  - Files: `README.md`, `specs/SPEC-shell.md`, `specs/SPEC-ui-ux.md`, `tasks/plan.md`, `tasks/todo.md`.
+
+---
+
+## Fase 25 — compatibilidad del túnel remoto
+
+> Spec: `SPEC-web-access.md` (Iteración 4). Verificado contra OpenCode v2.3.0.
+
+- [x] **Task: Normalizar `remote` en el snapshot**
+  - **Hecho:** `Snapshot()` convierte el objeto `{route}` (o `{}` redactado) en `"true"` y conserva el booleano legacy; no copia la ruta.
+  - Acceptance: `service get` con `"remote": {}` produce `cfg["remote"] == "true"`; sin la clave sigue apagado.
+  - Verify: `TestSnapshotParsesRemoteObject`, `TestSnapshotRemoteObjectKeepsRouteOut` + test legacy.
+  - Files: `internal/servicecontrol/config.go`, `internal/servicecontrol/service_test.go`.
+
+- [x] **Task: Detección robusta del modo remoto**
+  - **Hecho:** `remoteEnabled` acepta `"true"` y objetos serializados; `modeFromConfig` lo usa y el fallback `Get("remote")` sigue funcionando.
+  - Acceptance: el estado reporta `remote` con snapshot objeto, booleano y fallback por clave.
+  - Verify: `TestStateRemoteFromObject`, `TestStateRemoteFromGetFallback`, `TestRemoteEnabled`.
+  - Files: `internal/webaccess/urls.go`, `internal/webaccess/webaccess_test.go`.
+
+- [x] **Task: Encender remoto con `service set remote true`**
+  - **Hecho:** `ApplyMode(remote)` usa `SetRemote("true")` con timeout largo (~2 min), arranca y espera la URL remota en `/api/info` (~5 s).
+  - Acceptance: el túnel se activa sin generar códigos de pairing; la UI queda en Remoto y muestra la URL remota.
+  - Verify: `TestApplyModeRemote`, `TestSetRemotePassesArgs`.
+  - Files: `internal/webaccess/modes.go`, `internal/servicecontrol/config.go`, `internal/servicecontrol/service.go`, `internal/webaccess/webaccess.go`.
+
+- [x] **Task: Documentar y cerrar**
+  - **Hecho:** `SPEC-web-access.md` (Iteración 4), README, `tasks/plan.md` (Fase 25) y este todo actualizados.
+  - Acceptance: documentación coherente y build en verde.
+  - Verify: `gofmt`, `go test ./...`, `pnpm test`, `pnpm build`.
+  - Files: `README.md`, `specs/SPEC-web-access.md`, `tasks/plan.md`, `tasks/todo.md`.

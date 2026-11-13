@@ -9,18 +9,18 @@ import (
 
 type mockBackend struct {
 	sets    map[string]string
-	runs    [][]string
 	started int
 	port    string
 	status  servicecontrol.Status
 	info    servicecontrol.ServerInfo
 	infoErr error
 
-	snapshotErr error
-	statusCalls int
-	configCalls int
-	getCalls    int
-	infoCalls   int
+	snapshotErr    error
+	statusCalls    int
+	configCalls    int
+	getCalls       int
+	infoCalls      int
+	setRemoteCalls int
 }
 
 func newMockBackend() *mockBackend {
@@ -28,6 +28,11 @@ func newMockBackend() *mockBackend {
 }
 
 func (m *mockBackend) Set(key, value string) error { m.sets[key] = value; return nil }
+func (m *mockBackend) SetRemote(value string) error {
+	m.setRemoteCalls++
+	m.sets["remote"] = value
+	return nil
+}
 func (m *mockBackend) Get(key string) (string, error) {
 	m.getCalls++
 	if key == "port" {
@@ -48,10 +53,6 @@ func (m *mockBackend) Snapshot() (map[string]string, error) {
 		out["port"] = m.port
 	}
 	return out, nil
-}
-func (m *mockBackend) RunRaw(args ...string) (string, error) {
-	m.runs = append(m.runs, args)
-	return "tunnel-link", nil
 }
 func (m *mockBackend) Start() error { m.started++; return nil }
 func (m *mockBackend) Status() (servicecontrol.Status, error) {
@@ -97,6 +98,10 @@ func TestApplyModeNetwork(t *testing.T) {
 
 func TestApplyModeRemote(t *testing.T) {
 	b := newMockBackend()
+	b.info = servicecontrol.ServerInfo{URLs: []string{
+		"http://127.0.0.1:5000",
+		"https://abc123.def456.opentunnel.xyz",
+	}}
 	s := New(b)
 	if err := s.ApplyMode(ModeRemote); err != nil {
 		t.Fatal(err)
@@ -104,15 +109,14 @@ func TestApplyModeRemote(t *testing.T) {
 	if b.sets["hostname"] != "127.0.0.1" {
 		t.Errorf("hostname = %q, want 127.0.0.1", b.sets["hostname"])
 	}
-	if len(b.runs) != 1 {
-		t.Fatalf("runs = %v", b.runs)
-	}
-	got := b.runs[0]
-	if len(got) != 3 || got[0] != "pair" || got[1] != "--remote" || got[2] != "--yes" {
-		t.Errorf("RunRaw args = %v", got)
+	if b.setRemoteCalls != 1 || b.sets["remote"] != "true" {
+		t.Errorf("remote = %q (calls %d), want true", b.sets["remote"], b.setRemoteCalls)
 	}
 	if b.started != 1 {
 		t.Errorf("started = %d, want 1", b.started)
+	}
+	if b.infoCalls == 0 {
+		t.Error("debería consultar /api/info para esperar la URL del túnel")
 	}
 }
 
@@ -189,6 +193,56 @@ func TestStateMode(t *testing.T) {
 	b.sets["remote"] = "true"
 	if st, _ := s.State(); st.Mode != "remote" {
 		t.Errorf("State remote = %+v", st)
+	}
+}
+
+func TestStateRemoteFromObject(t *testing.T) {
+	b := newMockBackend()
+	b.status = servicecontrol.Status{Running: true, URL: "http://127.0.0.1:5000"}
+	b.sets["hostname"] = "127.0.0.1"
+	// OpenCode 2.x expone `remote` como objeto en `service get`.
+	b.sets["remote"] = "{}"
+	s := New(b)
+
+	st, err := s.State()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Mode != string(ModeRemote) {
+		t.Errorf("Mode = %q, want remote", st.Mode)
+	}
+}
+
+func TestStateRemoteFromGetFallback(t *testing.T) {
+	b := newMockBackend()
+	b.status = servicecontrol.Status{Running: true, URL: "http://127.0.0.1:5000"}
+	b.sets["remote"] = "true"
+	b.sets["hostname"] = "127.0.0.1"
+	b.snapshotErr = errors.New("formato distinto")
+	s := New(b)
+
+	st, err := s.State()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Mode != string(ModeRemote) {
+		t.Errorf("Mode = %q, want remote", st.Mode)
+	}
+}
+
+func TestRemoteEnabled(t *testing.T) {
+	cases := map[string]bool{
+		"true":               true,
+		"TRUE":               true,
+		" false ":            false,
+		"{}":                 true,
+		`{"route":"abc123"}`: true,
+		"":                   false,
+	}
+	for raw, want := range cases {
+		if got := remoteEnabled(raw); got != want {
+			t.Errorf("remoteEnabled(%q) = %v, want %v", raw, got, want)
+		}
 	}
 }
 

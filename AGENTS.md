@@ -23,6 +23,7 @@ powershell -ExecutionPolicy Bypass -File scripts/build-installer.ps1  # portable
 - `tasks/` — `plan.md` (plan técnico) y `todo.md` (tareas). Fuente de verdad del **cómo**.
 - `design-system/` — sistema de diseño generado con la skill `ui-ux-pro-max`.
 - `brand/` — fuentes SVG de los iconos (`icon.svg` tile de app + `mark.svg` glifo). **Fuente única**.
+- `docs/screenshots/` — capturas del panel en WebP lossless usadas en `README.md` (se commitean).
 - `internal/<módulo>` — backend Go: `shell`, `servicecontrol`, `webaccess`, `usage`, `configviewer`, `notifications`.
 - `buildinfo.go` — versión y compilación expuestas al frontend (`GetAppVersion`); embebe `wails.json`.
 - `frontend/` — UI Vue 3.

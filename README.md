@@ -10,6 +10,8 @@ Stack: **Wails v2.16 + Go 1.25+ + Vue 3 / Vite / TypeScript**.
 
 ## 📑 Contenido
 
+- [Capturas](#capturas) — el panel en cada pestaña
+- [Arquitectura](#arquitectura) — componentes, canales y APIs
 - [Antes de empezar](#antes-de-empezar)
 - [Inicio rápido](#inicio-rapido) — Ubuntu y Windows
 - [Probar la app](#probar) — abrir el panel, checklist y problemas frecuentes
@@ -19,6 +21,66 @@ Stack: **Wails v2.16 + Go 1.25+ + Vue 3 / Vite / TypeScript**.
 - [Build — Linux/Ubuntu](#build-linux) — requisitos, compilar y ejecutar
 - [Limitaciones conocidas](#limitaciones)
 - [Documentación y planificación](#docs)
+
+---
+
+<a id="capturas"></a>
+## 📸 Capturas
+
+Panel real, tema oscuro e idioma español (ventana fija de 380×600).
+
+| Resumen | Servicio |
+|---|---|
+| <img src="docs/screenshots/resumen.webp" width="380" alt="Resumen: consumo de OpenCode Go, estado del servicio, acceso web y servidores MCP"> | <img src="docs/screenshots/servicio.webp" width="380" alt="Servicio: estado, control y servidores MCP"> |
+| Dashboard con el consumo del mes, el servicio, el modo de acceso y los MCP. | Estado y control del servicio (iniciar / detener / forzar) + MCP. |
+
+| Acceso web | Ajustes |
+|---|---|
+| <img src="docs/screenshots/acceso-web.webp" width="380" alt="Acceso web: modos local, red y remoto, URLs y credenciales"> | <img src="docs/screenshots/ajustes.webp" width="380" alt="Ajustes: idioma, auto-inicio, intervalo de refresco y OpenCode Go"> |
+| Modos local / red / remoto, URLs reales y credenciales. | Idioma, auto-inicio, intervalo de refresco y OpenCode Go. |
+
+---
+
+<a id="arquitectura"></a>
+## 🏗️ Arquitectura
+
+OpenCode Tray es **un solo proceso** (Go + WebView). El panel Vue no habla HTTP con el backend: usa los *bindings* que genera Wails. El backend ejecuta el CLI de OpenCode y consulta la API de OpenCode Go; la app **no expone ninguna API propia**.
+
+```mermaid
+flowchart TB
+  subgraph Desktop["Escritorio del usuario"]
+    Tray["Icono y menú de bandeja"]
+    subgraph App["OpenCode Tray (un proceso)"]
+      UI["Panel Vue 3<br/>Resumen · Servicio · Acceso web · Ajustes"]
+      Bridge["Bindings Wails<br/>App.*"]
+      Mods["shell · servicecontrol · webaccess<br/>usage · configviewer · notifications"]
+    end
+    Settings[("settings.json")]
+  end
+
+  UI -- "RPC Wails" --> Bridge
+  Bridge --> Mods
+  Mods <--> Settings
+  Tray -- "mostrar · ocultar · tooltip" --> Mods
+
+  Mods -- "exec opencode<br/>service status / start / stop<br/>service set hostname, remote<br/>api get /api/info" --> CLI["CLI de OpenCode"]
+  CLI --> Server["Servidor OpenCode local<br/>127.0.0.1:puerto"]
+  Server -. "túnel remoto (OpenTunnel)" .-> Internet((Internet))
+
+  Mods -- "GET /zen/go/v1/usage<br/>Bearer token" --> Cloud["OpenCode Go<br/>opencode.ai"]
+
+  Mods -. "notificaciones · auto-inicio<br/>abrir navegador / editor" .-> OS["Sistema operativo"]
+```
+
+| Canal | Extremos | Qué viaja |
+|---|---|---|
+| Bindings Wails | Panel Vue ↔ backend Go | Llamadas `App.*` (servicio, URLs, consumo, configuración y ajustes). Sin HTTP: WebView y backend comparten proceso. |
+| CLI de OpenCode | Backend ↔ `opencode` | `service status/start/stop`, `service set hostname/remote` (modo de acceso), `api get /api/info` (URL real, PID y túnel) y `export` (token de OpenCode Go). |
+| HTTPS | Backend ↔ OpenCode Go | `GET https://opencode.ai/zen/go/v1/usage` con `Authorization: Bearer <token>`; devuelve las ventanas de consumo. |
+| Archivos | Backend ↔ disco | `settings.json` propio (lectura/escritura); `service.json`, `opencode.json` y `auth.json` en solo lectura. La configuración se cambia con el CLI. |
+| Sistema operativo | Backend ↔ SO | Icono y menú del tray, auto-inicio (registro en Windows / XDG en Linux), notificaciones (envío deshabilitado) y apertura de navegador o editor. |
+
+En modo **remoto**, el túnel lo crea OpenTunnel al ejecutar `opencode service set remote true`; la URL pública tarda hasta un minuto en aparecer en `/api/info`. En local, la URL sale de `opencode service status` con el puerto real.
 
 ---
 
@@ -158,7 +220,7 @@ La UI usa iconos SVG (sin emoji), botones `btn` en tamaño compacto estándar, c
 ```bash
 wails dev                  # hot reload (lee la limitación del puente más abajo)
 go test ./...              # tests backend (Go)
-cd frontend && pnpm test    # tests frontend (Vitest): 79 tests
+cd frontend && pnpm test    # tests frontend (Vitest): 80 tests
 cd frontend && pnpm build   # type-check (vue-tsc) + build del frontend
 ```
 
@@ -178,6 +240,7 @@ cd frontend && pnpm build   # type-check (vue-tsc) + build del frontend
 | `internal/notifications` | Lógica de alertas (envío deshabilitado) |
 | `frontend/` | UI Vue 3 (`components/` por sección, `lib/` caché y ajustes, i18n es/en) |
 | `brand/` | Fuentes SVG de los iconos (`icon.svg` tile de app, `mark.svg` glifo) |
+| `docs/screenshots/` | Capturas del panel en WebP usadas en el README |
 | `build/` | Iconos y recursos por plataforma (`build/bin` es gitignored) |
 | `scripts/` | `build-linux.sh`, `build-deb.sh`, `build-installer.ps1` (Windows), `generate-icons.sh` |
 | `internal/cli` | Resolución del CLI de OpenCode (PATH, `~/.opencode/bin`, etc.) |
